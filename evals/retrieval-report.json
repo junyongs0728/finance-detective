@@ -1,0 +1,159 @@
+{
+  "dataset_status": "development diagnostic, authored after inspecting source; not blind holdout",
+  "corpus_sha256": "50e56045a2325f698f0fd6daca3bca596d2ac1ee6163350088e686ebe385fda1",
+  "answerable_count": 8,
+  "unanswerable_count": 2,
+  "hit_at_1": 0.875,
+  "hit_at_5": 1.0,
+  "mrr_at_5": 0.90625,
+  "unanswerable_with_candidates": 2,
+  "limitations": "Candidates are not answers. No semantic correctness, completeness, Korean, multi-company or generation evaluation. Negative cases diagnose need for scope/answerability checks; not hallucination rate.",
+  "cases": [
+    {
+      "id": "cash",
+      "query": "Why did operating cash flow decrease?",
+      "answerable": true,
+      "top_pages": [
+        58,
+        58,
+        86,
+        57,
+        102
+      ],
+      "hit_at_1": true,
+      "hit_at_5": true,
+      "reciprocal_rank_at_5": 1.0
+    },
+    {
+      "id": "retail",
+      "query": "When does Coupang recognize retail revenue?",
+      "answerable": true,
+      "top_pages": [
+        52,
+        73,
+        52,
+        73,
+        66
+      ],
+      "hit_at_1": false,
+      "hit_at_5": true,
+      "reciprocal_rank_at_5": 0.25
+    },
+    {
+      "id": "membership",
+      "query": "How is WOW subscription fee revenue recognized?",
+      "answerable": true,
+      "top_pages": [
+        73,
+        52,
+        73,
+        77,
+        52
+      ],
+      "hit_at_1": true,
+      "hit_at_5": true,
+      "reciprocal_rank_at_5": 1.0
+    },
+    {
+      "id": "deferred",
+      "query": "When are advance customer payments recognized as revenue?",
+      "answerable": true,
+      "top_pages": [
+        73,
+        77,
+        73,
+        77,
+        73
+      ],
+      "hit_at_1": true,
+      "hit_at_5": true,
+      "reciprocal_rank_at_5": 1.0
+    },
+    {
+      "id": "supplier",
+      "query": "How are supplier rebates and incentives recorded?",
+      "answerable": true,
+      "top_pages": [
+        73,
+        92,
+        92,
+        74,
+        87
+      ],
+      "hit_at_1": true,
+      "hit_at_5": true,
+      "reciprocal_rank_at_5": 1.0
+    },
+    {
+      "id": "lease",
+      "query": "What are the remaining operating lease term and discount rate?",
+      "answerable": true,
+      "top_pages": [
+        86,
+        76,
+        84,
+        85,
+        69
+      ],
+      "hit_at_1": true,
+      "hit_at_5": true,
+      "reciprocal_rank_at_5": 1.0
+    },
+    {
+      "id": "greenoaks",
+      "query": "What consideration was paid to Greenoaks for its equity interest?",
+      "answerable": true,
+      "top_pages": [
+        93,
+        93,
+        70,
+        70,
+        103
+      ],
+      "hit_at_1": true,
+      "hit_at_5": true,
+      "reciprocal_rank_at_5": 1.0
+    },
+    {
+      "id": "capex",
+      "query": "Why did investing cash outflow increase?",
+      "answerable": true,
+      "top_pages": [
+        58,
+        102,
+        86,
+        71,
+        58
+      ],
+      "hit_at_1": true,
+      "hit_at_5": true,
+      "reciprocal_rank_at_5": 1.0
+    },
+    {
+      "id": "future",
+      "query": "What was actual revenue for the full year 2027?",
+      "answerable": false,
+      "top_pages": [
+        87,
+        56,
+        57,
+        72,
+        59
+      ],
+      "returned_candidates": true
+    },
+    {
+      "id": "foreign_company",
+      "query": "What was Samsung operating income in 2025?",
+      "answerable": false,
+      "top_pages": [
+        75,
+        67,
+        52,
+        71,
+        100
+      ],
+      "returned_candidates": true
+    }
+  ]
+}

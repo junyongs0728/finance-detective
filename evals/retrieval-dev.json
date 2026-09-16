@@ -1,0 +1,71 @@
+{
+  "status": "development diagnostic, authored after inspecting source; not blind holdout",
+  "cases": [
+    {
+      "id": "cash",
+      "query": "Why did operating cash flow decrease?",
+      "answerable": true,
+      "page": 58,
+      "evidence_phrase": "deposits and contract assets"
+    },
+    {
+      "id": "retail",
+      "query": "When does Coupang recognize retail revenue?",
+      "answerable": true,
+      "page": 73,
+      "evidence_phrase": "upon delivery to the customer"
+    },
+    {
+      "id": "membership",
+      "query": "How is WOW subscription fee revenue recognized?",
+      "answerable": true,
+      "page": 73,
+      "evidence_phrase": "recognized over the subscription period"
+    },
+    {
+      "id": "deferred",
+      "query": "When are advance customer payments recognized as revenue?",
+      "answerable": true,
+      "page": 73,
+      "evidence_phrase": "following month when delivery is made"
+    },
+    {
+      "id": "supplier",
+      "query": "How are supplier rebates and incentives recorded?",
+      "answerable": true,
+      "page": 73,
+      "evidence_phrase": "reduction in cost of sales"
+    },
+    {
+      "id": "lease",
+      "query": "What are the remaining operating lease term and discount rate?",
+      "answerable": true,
+      "page": 86,
+      "evidence_phrase": "Weighted-average remaining lease term"
+    },
+    {
+      "id": "greenoaks",
+      "query": "What consideration was paid to Greenoaks for its equity interest?",
+      "answerable": true,
+      "page": 93,
+      "evidence_phrase": "fair value of $122 million"
+    },
+    {
+      "id": "capex",
+      "query": "Why did investing cash outflow increase?",
+      "answerable": true,
+      "page": 58,
+      "evidence_phrase": "increase in purchases of property and equipment"
+    },
+    {
+      "id": "future",
+      "query": "What was actual revenue for the full year 2027?",
+      "answerable": false
+    },
+    {
+      "id": "foreign_company",
+      "query": "What was Samsung operating income in 2025?",
+      "answerable": false
+    }
+  ]
+}

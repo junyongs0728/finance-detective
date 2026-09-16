@@ -1,0 +1,6 @@
+{
+  "runs": 30,
+  "uncached_rank_median_ms": 20.004,
+  "warm_search_median_ms": 0.514,
+  "scope": "single local process; no HTTP latency or concurrency; warm cache vs rebuilding corpus statistics"
+}
