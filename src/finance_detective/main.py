@@ -1,14 +1,17 @@
 from pathlib import Path
+from contextlib import asynccontextmanager
 from pydantic import BaseModel, Field
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from finance_detective.rag import service as rag_service, store as rag_store
+from finance_detective.rag import billing
+from finance_detective import auth
 from finance_detective.chat import answer
 from finance_detective.retrieval.evidence import INDEX, PRESETS, search
 from typing import Literal
 from fastapi import Query, Request
 from fastapi.responses import JSONResponse
-from finance_detective.providers.common import ProviderError
+from finance_detective.providers.common import ProviderError, setting
 from finance_detective.providers.registry import find_companies, get_company
 from finance_detective.providers.service import load_financials, summary as company_summary
 from html import escape
@@ -18,7 +21,15 @@ from finance_detective.collectors.sec import OUTPUT
 from fastapi import FastAPI, HTTPException
 from fastapi.responses import HTMLResponse
 
-app = FastAPI(title="재무탐정", version="0.1.0", description="미국 SEC · 한국 OpenDART 기업 검색과 연간 재무정보 조회")
+@asynccontextmanager
+async def lifespan(app):
+    rag_store.initialize()
+    yield
+    rag_service.POOL.shutdown(wait=True)
+    rag_store.close()
+
+app = FastAPI(title="재무탐정", version="0.2.0", lifespan=lifespan,
+              description="미국 SEC · 한국 OpenDART 기업 검색과 연간 재무정보 조회")
 
 COMPANY = {
     "name": "Coupang, Inc.", "ticker": "CPNG", "cik": "0001834584",
@@ -35,8 +46,39 @@ def health():
 
 @app.exception_handler(ProviderError)
 def provider_error(request: Request, exc: ProviderError):
-    status = 404 if exc.code == "not_found" else 422 if exc.code == "unsupported" else 503
+    status = {"not_found":404,"unsupported":422,"ai_auth_required":401,"ai_forbidden":403,
+              "ai_input_limit":422,"ai_user_limit":429,"ai_budget_exceeded":429,"ai_busy":429}.get(exc.code,503)
     return JSONResponse(status_code=status, content={"detail": str(exc), "code": exc.code})
+
+
+@app.get('/api/session')
+def session(request: Request):
+    user=auth.resolve(request)
+    return {'mode':setting('AI_AUTH_MODE') or 'token','authenticated':bool(user),
+            'usage':billing.usage(user) if user else None}
+
+
+class AccessRequest(BaseModel):
+    code: str = Field(min_length=20,max_length=200)
+
+
+@app.post('/api/session')
+def login(payload: AccessRequest,request: Request):
+    auth.check_origin(request)
+    user=auth.token_user(payload.code)
+    if not user:raise ProviderError('이용 코드가 올바르지 않습니다.','ai_auth_required')
+    response=JSONResponse({'authenticated':True,'usage':billing.usage(user)})
+    response.set_cookie(auth.COOKIE,payload.code,httponly=True,samesite='strict',
+                        secure=request.url.scheme=='https',max_age=86400)
+    return response
+
+
+@app.delete('/api/session')
+def logout(request: Request):
+    auth.check_origin(request)
+    response=JSONResponse({'authenticated':False})
+    response.delete_cookie(auth.COOKIE)
+    return response
 
 
 @app.get("/api/companies")
@@ -63,8 +105,9 @@ def rag_status(document_id: str):
 
 
 @app.post("/api/rag/prepare/{company_id}")
-def prepare_rag(company_id: str):
-    return rag_service.prepare(load_financials(company_id))
+def prepare_rag(company_id: str,request: Request):
+    with billing.as_user(auth.resolve(request,required=True)):
+        return rag_service.prepare(load_financials(company_id))
 
 
 @app.get("/api/companies/{ticker}")
@@ -158,11 +201,12 @@ class ChatRequest(BaseModel):
 
 
 @app.post("/api/chat")
-def chat(request: ChatRequest):
-    if not request.message.strip():
+def chat(payload: ChatRequest,request: Request):
+    if not payload.message.strip():
         raise HTTPException(status_code=422, detail="질문을 입력해주세요.")
     try:
-        return answer(request.message, request.company_id)
+        with billing.as_user(auth.resolve(request)):
+            return answer(payload.message, payload.company_id)
     except FileNotFoundError:
         raise HTTPException(status_code=503, detail="분석 자료가 준비되지 않았습니다. 수집과 색인을 먼저 실행해주세요.")
 

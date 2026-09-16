@@ -5,10 +5,6 @@ from finance_detective.providers.common import ProviderError
 from finance_detective.rag import store, documents, search, llm, service
 from finance_detective.rag.validation import validate_answer
 
-@pytest.fixture
-def database(tmp_path,monkeypatch):
-    monkeypatch.setattr(store,'DB_PATH',tmp_path/'rag.sqlite3')
-
 
 def filing(cid='SEC:AAPL',accession='2025-a'):
     return {'company_id':cid,'company':'Fixture Company','source_url':'https://www.sec.gov/Archives/edgar/data/1/report.htm',
@@ -48,7 +44,7 @@ def test_sql_transaction_rolls_back_bad_vectors(database):
     with pytest.raises(ValueError):store.save_vectors(did,chunks,[[0.]*store.DIMENSIONS,[0.]],1)
     assert all(c['vector'] is None for c in store.chunks(did,True))
     with store.connection() as db:
-        with pytest.raises(Exception):db.execute("INSERT INTO embeddings VALUES ('missing',X'00')")
+        with pytest.raises(Exception):db.execute('INSERT INTO embeddings VALUES (%s,%s::public.vector)',('missing',store.vector_literal([1.0]*512)))
 
 
 def valid_answer():
@@ -121,3 +117,15 @@ def test_semantic_review_failure_withholds_candidate(database,monkeypatch):
     with store.connection() as db:
         row=db.execute('SELECT * FROM runs').fetchone()
     assert row['input_tokens']==15 and 'rejected_claims' in row['retrieval_json']
+
+
+def test_pgvector_matches_python_exact_cosine_order(database):
+    did=store.queue_document(filing(),'fixture-model')
+    chunks=[{'id':did+':'+str(i),'ordinal':i,'section':'Business','text':'text '+str(i)} for i in range(1,4)]
+    vectors=[[1.,0.]+[0.]*510,[0.6,0.8]+[0.]*510,[-1.,0.]+[0.]*510]
+    query=[0.8,0.6]+[0.]*510
+    store.save_chunks(did,chunks,'sha');store.save_vectors(did,chunks,vectors,10)
+    found=store.dense_rank(did,query)
+    expected=sorted([(c['id'],search.cosine(query,v)) for c,v in zip(chunks,vectors)],key=lambda item:-item[1])
+    assert [r[0] for r in found]==[r[0] for r in expected]
+    assert [r[1] for r in found]==pytest.approx([r[1] for r in expected],abs=1e-6)

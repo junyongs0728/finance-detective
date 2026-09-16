@@ -5,6 +5,7 @@ from openai import OpenAI, APIError
 from finance_detective.providers.common import setting, ProviderError
 from .store import DIMENSIONS
 from .validation import source_spans
+from . import billing
 
 DEFAULT_MODEL='gpt-4.1-mini'
 DEFAULT_EMBEDDING='text-embedding-3-small'
@@ -52,13 +53,37 @@ def api_failure(exc):
     return ProviderError(message,'ai_unavailable')
 
 
+def paid_call(stage, selected_model, payload, max_output, call):
+    # UTF-8 byte count bounds byte-level text tokens; include schema/instructions and
+    # an extra framing allowance. Reserve uncached input + maximum output, then settle.
+    bound=len(json.dumps(payload,ensure_ascii=False).encode('utf-8'))+1024
+    if stage!='embedding' and bound>int(billing.number('AI_MAX_INPUT_TOKENS')):
+        raise ProviderError('분석 입력이 길이 제한을 초과했습니다. 질문 범위를 줄여주세요.','ai_input_limit')
+    with client() as api:
+        cid=billing.reserve(stage,selected_model,bound,max_output)
+        try:
+            result=call(api)
+            usage=getattr(result,'usage',None)
+            inp=getattr(usage,'total_tokens' if stage=='embedding' else 'input_tokens',None)
+            out=0 if stage=='embedding' else getattr(usage,'output_tokens',None)
+            if type(inp) is not int or type(out) is not int or min(inp,out)<0:
+                raise ProviderError('AI 사용량을 확인하지 못해 비용 예약을 유지하고 후속 호출을 중단했습니다.','ai_usage_unknown')
+            cached=getattr(getattr(usage,'input_tokens_details',None),'cached_tokens',0) or 0
+            billing.settle(cid,selected_model,inp,out,cached,getattr(result,'id',None),getattr(result,'model',selected_model))
+            return result
+        except APIError as exc:
+            billing.failed(cid,rejected=getattr(exc,'status_code',None) in (400,401,403,404,422,429))
+            raise api_failure(exc) from None
+        except BaseException:
+            billing.failed(cid)
+            raise
+
+
 def embed(texts, selected_model=None):
     if not texts or len(texts)>32:raise ValueError('Embedding batch size must be 1..32')
-    try:
-        with client() as api:
-            result=api.embeddings.create(model=selected_model or embedding_model(), input=texts,
-                                         dimensions=DIMENSIONS,encoding_format='float')
-    except APIError as exc:raise api_failure(exc) from None
+    selected_model=selected_model or embedding_model()
+    result=paid_call('embedding',selected_model,texts,0,lambda api:
+        api.embeddings.create(model=selected_model,input=texts,dimensions=DIMENSIONS,encoding_format='float'))
     rows=sorted(result.data,key=lambda row:row.index)
     vectors=[row.embedding for row in rows]
     if [row.index for row in rows]!=list(range(len(texts))) or any(len(v)!=DIMENSIONS or not all(math.isfinite(x) for x in v) for v in vectors):
@@ -71,12 +96,10 @@ def generate(question, data, evidence, financial_rows):
              'currency':data['currency'],'financial_scope':data['scope'],'period_basis':data['period_basis'],
              'question':question,'financial_rows':financial_rows,
              'evidence':[{'id':c['id'],'section':c['section'],'spans':source_spans(c)} for c in evidence]}
-    try:
-        with client() as api:
-            response=api.responses.create(model=model(),instructions=PROMPT,
+    response=paid_call('generate',model(),{'instructions':PROMPT,'input':payload,'schema':SCHEMA},1800,lambda api:
+            api.responses.create(model=model(),instructions=PROMPT,
                 input=json.dumps(payload,ensure_ascii=False),store=False,max_output_tokens=1800,
-                text={'format':{'type':'json_schema','name':'financial_grounded_answer','strict':True,'schema':SCHEMA}})
-    except APIError as exc:raise api_failure(exc) from None
+                text={'format':{'type':'json_schema','name':'financial_grounded_answer','strict':True,'schema':SCHEMA}}))
     if response.status!='completed' or not response.output_text:
         raise ProviderError('AI가 완성된 답변을 반환하지 않았습니다.','ai_incomplete')
     try:parsed=json.loads(response.output_text)
@@ -93,12 +116,10 @@ REVIEW_PROMPT='너는 공시 답변의 엄격한 근거 검토자다. 질문과 
 def review(question, verified, evidence):
     payload={'question':question,'claims':verified['claims'],
              'evidence':[{'id':c['id'],'section':c['section'],'text':c['text']} for c in evidence]}
-    try:
-        with client() as api:
-            result=api.responses.create(model=review_model(),instructions=REVIEW_PROMPT,
+    result=paid_call('review',review_model(),{'instructions':REVIEW_PROMPT,'input':payload,'schema':REVIEW_SCHEMA},650,lambda api:
+            api.responses.create(model=review_model(),instructions=REVIEW_PROMPT,
                 input=json.dumps(payload,ensure_ascii=False),store=False,max_output_tokens=650,
-                text={'format':{'type':'json_schema','name':'grounding_review','strict':True,'schema':REVIEW_SCHEMA}})
-    except APIError as exc:raise api_failure(exc) from None
+                text={'format':{'type':'json_schema','name':'grounding_review','strict':True,'schema':REVIEW_SCHEMA}}))
     if result.status!='completed' or not result.output_text:
         raise ProviderError('근거 검토가 완료되지 않아 답변을 보류했습니다.','ai_incomplete')
     try:parsed=json.loads(result.output_text)

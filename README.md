@@ -10,28 +10,31 @@ React 화면과 Python/FastAPI를 사용하며, 근거를 인용하는 재무 �
 - Python으로 계산한 매출 증가율·영업이익률
 - 공시별 통화·기간 기준·원문 링크와 누락 데이터 표시
 - 수치 질문은 규칙 기반 조회, 설명 질문은 선택 기업·공시에 한정한 RAG
-- SQLite 문서·문단·임베딩·실행 기록 저장
-- 임베딩 + BM25 검색, 출처 인용, 별도 근거 검토와 답변 유보
+- PostgreSQL 문서·문단·실행 기록 + pgvector 벡터 검색
+- pgvector 정확 검색 + BM25 검색, 출처 인용, 별도 근거 검토와 답변 유보
+- 모델별 토큰·비용 기록, 호출 전 예산 예약, 개인/전체 한도, 검증된 답변 캐시
+- 로컬 개발자 계정 / 배포용 이용 코드, React 사용량·캐시 비용 표시
 - 선택적으로 준비하는 쿠팡 2025 10-K의 BM25 본문 검색
 
-**현재는 고정된 RAG 워크플로이며 자율 Agent는 아닙니다.** OpenAI 생성·임베딩·SQLite 저장은 구현했고, 온톨로지·Property Graph·도구 선택 Agent는 다음 단계입니다. [RAG 구현 가이드](docs/rag-build-guide.md)에서 실제 코드 흐름과 한계를 설명합니다.
+**현재는 고정된 RAG 워크플로이며 자율 Agent는 아닙니다.** OpenAI 생성·임베딩·PostgreSQL 저장은 구현했고, 온톨로지·Property Graph·도구 선택 Agent는 다음 단계입니다. [RAG 구현 가이드](docs/rag-build-guide.md)에서 실제 코드 흐름과 한계를 설명합니다.
 
 ## 로컬 실행
 
-Python 3.12 이상, Node.js 22.12 이상이 필요합니다. 실제 검증 환경은 Python 3.14 / Node.js 24입니다.
+Python 3.12 이상, Node.js 22.12 이상, 실행 중인 Docker Desktop이 필요합니다. 실제 검증 환경은 Python 3.14 / Node.js 24입니다.
 
 ```sh
 git clone https://github.com/junyongs0728/finance-detective.git
 cd finance-detective
 python3 -m venv .venv
 .venv/bin/python -m pip install -r requirements.lock.txt
-cp .env.example .env
+.venv/bin/python scripts/setup_local.py
+docker compose up -d --wait
 npm ci --prefix frontend
 npm run build --prefix frontend
-.venv/bin/python -m uvicorn finance_detective.main:app --app-dir src --host 127.0.0.1 --port 8000
+.venv/bin/python -m uvicorn finance_detective.main:app --app-dir src --host 127.0.0.1 --port 8000 --no-proxy-headers
 ```
 
-`.env`에 다음 항목을 직접 채우세요. 이미 `.env`가 있다면 복사 명령으로 덮어쓰지 마세요.
+`.env`에 다음 항목을 직접 채우세요. 설정 스크립트는 기존 값을 유지하고 없는 항목만 채웁니다.
 
 | 설정 | 용도 |
 |---|---|
@@ -41,6 +44,14 @@ npm run build --prefix frontend
 | `OPENAI_MODEL` | 기본값 `gpt-4.1-mini` |
 | `OPENAI_REVIEW_MODEL` | 근거 검토 기본값 `gpt-4.1` |
 | `OPENAI_EMBEDDING_MODEL` | 기본값 `text-embedding-3-small`, 512차원 |
+| `DATABASE_URL` / `POSTGRES_PASSWORD` | 설정 스크립트가 생성, DB는 localhost:55432 |
+| `AI_AUTH_MODE` | 로컬 `local`, 외부 배포는 `token` 필수 |
+| `AI_DAILY_BUDGET_USD` / `AI_MONTHLY_BUDGET_USD` | 전체 기본 $5/일, $30/월 |
+| `AI_USER_DAILY_BUDGET_USD` / `AI_USER_DAILY_REQUESTS` | 사용자 기본 $1/일, 분석 50회/일 |
+| `AI_REQUEST_BUDGET_USD` | 분석 작업당 $0.15 |
+| `AI_CACHE_TTL_SECONDS` | 동일 사용자·질문·공시·모델·프롬프트의 답변 재사용, 24시간 |
+
+기존 SQLite 사용자는 서버를 멈춘 상태에서 `.venv/bin/python scripts/migrate_sqlite.py`를 한 번 실행하세요. 원본을 보존하며 문단·임베딩·실행 기록을 검증해서 이전합니다. 재실행 가능하고 임베딩 API를 호출하지 않습니다. 새 설치는 서버 시작 시 빈 PostgreSQL 스키마를 준비합니다.
 
 - 앱: http://127.0.0.1:8000/
 - API 문서: http://127.0.0.1:8000/docs
@@ -94,7 +105,7 @@ SEC 수치와 [쿠팡 공식 IR PDF](https://s206.q4cdn.com/919117365/files/doc_
 npm run build --prefix frontend
 ```
 
-테스트는 고정 공개 수치와 합성 fixture를 사용하며 인증키·네트워크·다운로드된 PDF가 필요하지 않습니다.
+테스트는 고정 공개 수치와 합성 모델 응답을 사용하며 실제 PostgreSQL이 필요합니다 (`docker compose up -d --wait`). 테스트마다 임시 스키마를 만들고 삭제하며 운영 데이터는 건드리지 않습니다. 외부 API 인증키·호출·다운로드된 PDF는 필요하지 않습니다.
 실제 RAG 개발 평가: 삼성전자·애플·쿠팡에 먼저 설명 질문을 한 뒤 `.venv/bin/python scripts/evaluate_rag.py`. 이 평가는 유료 API를 호출하며 결과를 `data/processed/rag-evaluation.json`에 저장합니다. 실제 공급자 연결 및 브라우저 확인과 오프라인 단위 검사를 구분합니다.
 
 ## 코드 구조
@@ -107,7 +118,8 @@ src/finance_detective/
   providers/                 SEC / OpenDART 수집·정규화·캐시
   analysis/                  재무 비율 계산
   retrieval/                 최초 쿠팡 BM25 검색과 개발 평가
-  rag/                       공시 수집·SQL·하이브리드 검색·생성·검증
+  rag/                       PostgreSQL·pgvector·비용 예약·캐시·검색·생성·검증
+  auth.py                    로컬/이용 코드 사용자 식별
   collectors/                최초 쿠팡 수집 기준선
   agents/                    미구현 확장 자리
 scripts/                     선택적 데이터 준비
@@ -123,9 +135,23 @@ docs/                        구현 설명·설계·학습 기록
 3. 온톨로지 설계와 Property Graph 관계 탐색
 4. 근거·수치 정확성, 답변 유보, 비용·지연 평가와 Git 변경 기록
 
+- [PostgreSQL 전환과 AI 비용 제어](docs/postgres-cost-guide.md)
 - [기업 검색 구현과 AI 학습 계획](docs/company-search-guide.md)
 - [AI 엔지니어링 구현 설명](docs/ai-engineering-guide.md)
 - [React 채팅 구현 설명](docs/react-chat-guide.md)
 - [재무 개념 참고 노트](docs/finance-reference.md)
 
 일부 문서는 초기 단계의 실험 기록입니다. 현재 기능 범위는 이 README와 기업 검색 구현 가이드를 기준으로 확인하세요.
+
+## 비용 확인과 외부 배포 준비
+
+상단 ‘공시 근거 AI’를 누르면 오늘의 사용량을 확인할 수 있습니다. 새 공시 준비와 새 답변 분석은 각각 1회로 계산하며 실패한 실행도 횟수에 포함합니다. 수치 조회와 캐시 응답은 AI 횟수·토큰을 사용하지 않습니다. 일/월 기준은 UTC입니다.
+
+```sh
+.venv/bin/python scripts/cost_report.py
+.venv/bin/python scripts/create_access_token.py --user reviewer
+```
+
+이용 코드는 무시되는 `data/processed/access-reviewer.txt`에 생성됩니다. 외부 배포에서는 `AI_AUTH_MODE=token`과 HTTPS를 설정한 후 이용 코드를 배포합니다. 같은 사용자 코드 재발급은 기존 코드를 무효화합니다. 공개 회원가입·결제·SSO는 구현하지 않았습니다. `local` 모드는 로컬 IP/Host만 허용하며 reverse proxy 뒤에서 사용하면 안 됩니다.
+
+금액은 요금표와 응답 usage 기반의 **예상 API 비용**입니다. 세금·환율·서버·DB 비용, 전환 전 호출 및 다른 앱에서 같은 키로 쓴 비용은 포함하지 않습니다. 시간 초과 등 청구 여부가 불확실한 호출은 예약금을 계속 보유합니다. 예약 합계로 다음 호출을 차단하므로 설정 한도보다 보수적으로 멈출 수 있습니다. 자세한 정산·장애 복구·보안 범위는 비용 제어 문서를 보세요.

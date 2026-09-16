@@ -1,0 +1,42 @@
+{
+  "date": "2026-09-16",
+  "scope": "local development verification, not load test or general accuracy benchmark",
+  "migration": {
+    "documents": 5,
+    "chunks": 1804,
+    "embeddings": 1804,
+    "runs": 26,
+    "embedding_api_calls": 0,
+    "row_and_float32_verification": true,
+    "idempotent_rerun": true
+  },
+  "postgres_tests_passed": 56,
+  "frontend_build": "passed",
+  "live_coupang": [
+    {
+      "cached": false,
+      "estimated_usd": 0.005783,
+      "elapsed_ms": 8674,
+      "status": "answered"
+    },
+    {
+      "cached": true,
+      "estimated_usd": 0,
+      "elapsed_ms": 29,
+      "status": "answered"
+    }
+  ],
+  "live_samsung": {
+    "status": "answered",
+    "source_count": 2,
+    "estimated_usd": 0.015548
+  },
+  "limits": {
+    "day_usd": 5,
+    "month_usd": 30,
+    "user_day_usd": 1,
+    "user_day_requests": 50,
+    "operation_usd": 0.15,
+    "reset_timezone": "UTC"
+  }
+}

@@ -9,6 +9,7 @@ sys.path.insert(0,str(ROOT/'src'))
 from finance_detective.chat import answer
 from finance_detective.providers.common import ProviderError, now
 from finance_detective.rag.llm import PROMPT_VERSION
+from finance_detective.rag import billing, store
 
 
 def main():
@@ -37,4 +38,8 @@ def main():
     print('Results saved locally:',output.relative_to(ROOT),flush=True)
 
 
-if __name__=='__main__':main()
+if __name__=='__main__':
+    store.initialize()
+    try:
+        with billing.as_user('local-owner'):main()
+    finally:store.close()

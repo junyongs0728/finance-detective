@@ -4,16 +4,19 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "finance-detective"
-version = "0.1.0"
+version = "0.2.0"
 description = "Evidence-first financial analysis, starting with Coupang"
 requires-python = ">=3.12"
-dependencies = ["fastapi>=0.115,<1", "uvicorn>=0.30,<1", "certifi>=2024.2.2", "pypdf>=6,<7", "python-dotenv>=1,<2", "beautifulsoup4>=4.12,<5", "openai>=2,<3"]
+dependencies = ["fastapi>=0.115,<1", "uvicorn>=0.30,<1", "certifi>=2024.2.2", "pypdf>=6,<7", "python-dotenv>=1,<2", "beautifulsoup4>=4.12,<5", "openai>=2,<3", "psycopg[binary,pool]>=3.2,<4"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8,<10", "httpx>=0.27,<1"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+"finance_detective.rag" = ["schema.sql"]
 
 [tool.pytest.ini_options]
 pythonpath = ["src"]

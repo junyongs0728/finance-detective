@@ -4,6 +4,8 @@ import math
 import re
 from . import llm, store
 
+RETRIEVAL_VERSION='pgvector-exact-bm25-rrf-v1'
+
 
 def tokens(text):
     words=re.findall(r'[a-z0-9]+|[가-힣]+',text.lower())
@@ -55,10 +57,10 @@ def retrieve(doc_id, question, limit=6):
     document=store.get_document(doc_id)
     if not document or document['status']!='ready':raise ValueError('Document is not ready')
     # Query only this exact company + accession + parser/model version via document FK.
-    chunks=store.chunks(doc_id,vectors=True)
+    chunks=store.chunks(doc_id)
     effective=retrieval_query(question)
     vectors,usage=llm.embed([effective],document['embedding_model'])
-    dense=sorted([(c['id'],cosine(vectors[0],c['vector'])) for c in chunks if c['vector']], key=lambda x:(-x[1],x[0]))
+    dense=store.dense_rank(doc_id,vectors[0],limit=30)
     lexical=lexical_rank(chunks,effective)
     # RRF combines rankings, not incomparable BM25 and cosine score scales.
     scores=Counter()
@@ -69,5 +71,5 @@ def retrieve(doc_id, question, limit=6):
     for cid,score in sorted(scores.items(),key=lambda x:(-x[1],x[0]))[:limit]:
         chunk={k:v for k,v in by_id[cid].items() if k!='vector'}
         results.append({**chunk,'score':round(score,6),'source_url':document['source_url'],'document_title':document['title']})
-    return results,{'method':'hybrid_rrf','embedding_tokens':usage,'document_id':doc_id,
+    return results,{'method':'pgvector_exact_bm25_rrf','version':RETRIEVAL_VERSION,'embedding_tokens':usage,'document_id':doc_id,
                    'candidate_count':len(chunks),'effective_query':effective,'dense_top_ids':[i for i,_ in dense[:6]],'lexical_top_ids':[i for i,_ in lexical[:6]]}

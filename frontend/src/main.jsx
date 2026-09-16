@@ -16,6 +16,7 @@ function Result({ result }) {
   return <>
     <div className="steps">{result.steps.map(step => <span key={step}><Check size={12}/>{step}</span>)}</div>
     <p className="answer-text">{result.text}</p>
+    {result.billing && <p className="table-note">{result.billing.cached ? '저장된 분석 재사용 · 이번 AI 비용 $0' : `이번 AI 처리 예상 비용 $${result.billing.estimated_usd.toFixed(5)}`}</p>}
     {!!result.rows.length && <div className="result-card">
       <div className="table-title"><strong>{result.company_name} · 연간 실적</strong><span>{result.currency === 'KRW' ? '억 원' : `백만 ${result.currency}`} / %</span></div>
       <div className="table-scroll"><table><thead><tr><th>{result.period_basis || '연도'}</th><th>매출</th><th>영업이익</th><th>영업현금흐름</th><th>매출 증가율</th><th>영업이익률</th></tr></thead>
@@ -78,6 +79,27 @@ function App() {
   const [phase, setPhase] = useState('공시 자료를 확인하고 있습니다')
   const [sidebar, setSidebar] = useState(true)
   const [help, setHelp] = useState(false)
+  const [account, setAccount] = useState(null)
+  const [accountError, setAccountError] = useState('')
+  const [accessCode, setAccessCode] = useState('')
+  async function refreshUsage() {
+    try {
+      const response = await fetch('/api/session')
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.detail || '사용량을 확인하지 못했습니다.')
+      setAccount(data); setAccountError('')
+    } catch (error) { setAccountError(error.message) }
+  }
+  async function connect(event) {
+    event.preventDefault()
+    try {
+      const response = await fetch('/api/session', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ code: accessCode }) })
+      const data = await response.json()
+      if (!response.ok) throw new Error(data.detail || '연결하지 못했습니다.')
+      setAccessCode(''); await refreshUsage()
+    } catch (error) { setAccountError(error.message) }
+  }
+  useEffect(() => { refreshUsage() }, [])
   const end = useRef(null)
   const textarea = useRef(null)
   const controller = useRef(null)
@@ -131,7 +153,7 @@ function App() {
       const ask = async () => {
         const response = await fetch('/api/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ message, company_id: selected.id }), signal: local.signal })
         const data = await response.json()
-        if (!response.ok) throw new Error(typeof data.detail === 'string' ? data.detail : '요청을 처리하지 못했습니다. 다시 시도해주세요.')
+        if (!response.ok) { if (response.status === 401 || response.status === 429) setHelp(true); throw new Error(typeof data.detail === 'string' ? data.detail : '요청을 처리하지 못했습니다. 다시 시도해주세요.') }
         return data
       }
       let data = await ask()
@@ -161,6 +183,7 @@ function App() {
       if (run === generation.current) setMessages(prev => [...prev, { id: crypto.randomUUID(), role: 'error', text: local.signal.aborted ? (local.signal.reason === 'timeout' ? '응답 시간이 초과되었습니다.' : '요청을 중지했습니다.') : (error.message === 'Failed to fetch' ? '서버에 연결하지 못했습니다. 연결 상태를 확인하고 다시 시도해주세요.' : error.message), question: message }])
     } finally {
       clearTimeout(timeout)
+      refreshUsage()
       if (run === generation.current) { controller.current = null; setBusy(false); textarea.current?.focus() }
     }
   }
@@ -171,11 +194,15 @@ function App() {
       <p className="nav-label">WORKSPACE</p>
       <div className="nav-active"><Search size={17}/>공시 탐색<span className="live-dot"/></div>
       <div className="source-panel"><p className="nav-label">현재 분석 기업</p><div className="company-logo">{selected.provider === 'DART' ? 'KR' : 'US'}</div><strong>{overview?.name || selected.name}</strong><span className="ticker">{selected.provider} · {selected.ticker}</span><button className="change-company" onClick={() => setPicker(true)}><Search size={14}/>기업 변경</button><div className="source-meta"><span>보고서</span><b>{overview?.filing.form || '조회 중'}</b><span>기준 기간</span><b>{overview?.filing.end || '—'}</b><span>통화</span><b>{overview?.currency || '—'}</b></div>{overview && <a href={overview.source_url} target="_blank" rel="noreferrer">공시 원문 보기 <ArrowUpRight size={14}/></a>}</div>
-      <div className="sidebar-bottom"><span className="avatar">J</span><div>나의 리서치 공간<small>로컬 프로젝트 · v0.1</small></div></div>
+      <div className="sidebar-bottom"><span className="avatar">J</span><div>나의 리서치 공간<small>로컬 프로젝트 · v0.2</small></div></div>
     </aside>
     <main>
       <header><div className="header-left"><button className="icon-button" aria-label="사이드바 열기 또는 닫기" onClick={() => setSidebar(!sidebar)}>{sidebar ? <PanelLeftClose size={19}/> : <PanelLeftOpen size={19}/>}</button><span>공시 탐색</span><span className="header-separator">/</span><button className="header-company company-trigger" onClick={() => setPicker(true)}><Search size={14}/><span>{selected.name}</span><ChevronDown size={13}/></button><button className="icon-button header-new" aria-label="새 대화 시작" onClick={reset}><Plus size={18}/></button></div><button className="status-pill" onClick={() => setHelp(!help)}><span className="live-dot"/>공시 근거 AI<CircleHelp size={13}/></button></header>
       {help && <div className="help-banner">수치 조회는 공시 API와 계산 도구를, 설명 질문은 선택한 공시를 검색하는 AI를 사용합니다. 첫 설명 질문은 공시 준비에 시간이 걸립니다. 질문마다 기간을 명시해주세요. 이전 대화 기억은 아직 지원하지 않습니다.</div>}
+      {help && <div className="usage-panel">
+        {account?.authenticated && account.usage ? <><strong>오늘의 AI 이용</strong><span>{account.usage.daily_requests} / {account.usage.daily_request_limit}회 · ${account.usage.daily_used_usd.toFixed(4)} / ${account.usage.daily_budget_usd.toFixed(2)}</span><small>UTC 자정에 초기화 · 공시 최초 준비도 1회 사용 · 저장된 답변 재사용은 차감하지 않습니다.</small>{account.usage.held_usd > 0 && <small>처리 중이거나 비용 확인이 필요한 예약금 ${account.usage.held_usd.toFixed(4)} 포함</small>}{account.mode === 'token' && <button onClick={async () => { await fetch('/api/session', { method: 'DELETE' }); refreshUsage() }}>연결 해제</button>}</> : <form onSubmit={connect}><label htmlFor="access-code">AI 분석 이용 코드</label><input id="access-code" type="password" autoComplete="off" value={accessCode} onChange={event => setAccessCode(event.target.value)} required minLength={20} maxLength={200}/><button>연결</button><small>기업 검색과 수치 조회는 코드 없이 이용할 수 있습니다.</small></form>}
+        {accountError && <p role="alert">{accountError}</p>}
+      </div>}
       <div className={`conversation ${hasMessages ? 'started' : ''}`}>
         {!hasMessages ? <section className="welcome company-welcome"><p className="eyebrow">FOLLOW THE NUMBERS. FIND THE EVIDENCE.</p><h1>궁금한 기업의<br/><span>숫자부터 살펴보세요.</span></h1><p className="welcome-copy">미국·한국 기업의 연간 실적을 출처와 함께 확인하세요.</p><button className="welcome-search" onClick={() => setPicker(true)}><Search size={19}/><span>기업명 또는 종목코드로 검색</span><span>↗</span></button>
           <div className="company-overview" aria-live="polite">{overviewLoading ? <p className="picker-message" role="status">{selected.name} 공시를 조회하고 있습니다…</p> : overviewError ? <div className="error-box" role="alert"><strong>{selected.name}</strong><p>{overviewError}</p><button onClick={() => setOverviewRetry(v => v + 1)}>다시 조회</button></div> : overview && <Result result={{ ...overview, company_name: overview.name, steps: [], text: '', evidence: [], sources: [{ label: overview.name + ' · ' + overview.filing.form, url: overview.source_url }] }}/>}</div>
