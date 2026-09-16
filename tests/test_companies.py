@@ -37,13 +37,16 @@ def test_selected_company_api_and_chat_never_use_coupang_evidence(monkeypatch):
         return dataset(cid)
     monkeypatch.setattr(main, "load_financials", load)
     monkeypatch.setattr(chat, "load_financials", load)
-    monkeypatch.setattr(chat, "search", lambda *args: pytest.fail("Must not search Coupang evidence"))
+    def rag(question,data,rows):
+        assert data["company_id"] == "DART:005930"
+        return {"mode":"rag","status":"preparing","evidence":[],"text":"Preparing selected company"}
+    monkeypatch.setattr(chat, "rag_answer", rag)
     response=client.get("/api/company-data/DART:005930").json()
     assert response["company"]["id"] == "DART:005930"
     assert response["currency"] == "KRW"
     assert response["rows"][-1]["revenue_growth_pct"] == 20
     result=client.post("/api/chat", json={"company_id":"DART:005930", "message":"영업현금흐름 감소 근거"}).json()
-    assert result["status"] == "evidence_unavailable" and result["evidence"] == []
+    assert result["status"] == "preparing" and result["evidence"] == []
     assert calls == ["DART:005930", "DART:005930"]
     mismatch=client.post("/api/chat", json={"company_id":"DART:005930", "message":"애플 매출"}).json()
     assert mismatch["status"] == "unsupported" and not mismatch["rows"]

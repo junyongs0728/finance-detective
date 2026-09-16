@@ -1,5 +1,8 @@
 # React 채팅 연결 — 2026-09-16
 
+> 후속 구현: OpenAI RAG·임베딩·SQLite·근거 검토가 추가되었습니다. 현재 상태는 [RAG 구현 가이드](rag-build-guide.md)를 참고하세요. 아래는 해당 단계의 기록입니다.
+
+
 ## 실행 흐름
 frontend/src/main.jsx App.send → POST /api/chat → ChatRequest 입력 길이 검증 → chat.answer → summarize/search → JSON → Result 컴포넌트.
 

@@ -1,0 +1,67 @@
+{
+  "purpose": "Small development acceptance set; not a held-out benchmark or hallucination-rate estimate.",
+  "cases": [
+    {
+      "id": "samsung-business",
+      "company_id": "DART:005930",
+      "question": "삼성전자는 어떤 사업으로 돈을 버는지 공시 근거로 설명해줘",
+      "expected_status": "answered",
+      "must_contain": [
+        "DX",
+        "DS"
+      ]
+    },
+    {
+      "id": "samsung-generic-business",
+      "company_id": "DART:005930",
+      "question": "주요 사업을 공시 근거로 설명해줘",
+      "expected_status": "answered",
+      "must_contain": [
+        "DX",
+        "DS"
+      ]
+    },
+    {
+      "id": "apple-risk",
+      "company_id": "SEC:AAPL",
+      "question": "애플의 주요 사업 위험 요인 두 가지를 공시 근거로 설명해줘",
+      "expected_status": "answered",
+      "must_contain": []
+    },
+    {
+      "id": "coupang-business",
+      "company_id": "SEC:CPNG",
+      "question": "주요 사업을 공시 근거로 설명해줘",
+      "expected_status": "answered",
+      "must_contain": []
+    },
+    {
+      "id": "missing-menu",
+      "company_id": "DART:005930",
+      "question": "사업보고서에 나온 본사 구내식당의 2025년 12월 24일 점심 메뉴를 설명해줘",
+      "expected_status": "insufficient_evidence",
+      "must_contain": []
+    },
+    {
+      "id": "missing-moon",
+      "company_id": "SEC:AAPL",
+      "question": "공시에 기록된 애플의 달 표면 오프라인 매장 사업을 설명해줘",
+      "expected_status": "insufficient_evidence",
+      "must_contain": []
+    },
+    {
+      "id": "wrong-company",
+      "company_id": "DART:005930",
+      "question": "애플의 주요 사업을 설명해줘",
+      "expected_status": "unsupported",
+      "must_contain": []
+    },
+    {
+      "id": "future-period",
+      "company_id": "DART:005930",
+      "question": "삼성전자 2029년 매출 알려줘",
+      "expected_status": "unsupported",
+      "must_contain": []
+    }
+  ]
+}

@@ -18,14 +18,17 @@ def setting(name):
     return os.environ.get(name) or dotenv_values(ROOT/".env").get(name) or ""
 
 
-def fetch(url):
+def fetch(url, max_bytes=None):
     # Serialize provider requests to keep this local app below 3 requests/sec.
     with NETWORK_LOCK:
         time.sleep(.35)
         req=Request(url,headers={"User-Agent":setting("SEC_USER_AGENT") or "FinanceDetective educational financial analysis", "Accept":"application/json,application/zip,*/*"})
         try:
             with urlopen(req,timeout=15,context=ssl.create_default_context(cafile=certifi.where())) as r:
-                return r.read()
+                raw = r.read(max_bytes + 1) if max_bytes else r.read()
+                if max_bytes and len(raw) > max_bytes:
+                    raise ProviderError("원문 크기 제한을 초과했습니다.", "document_too_large")
+                return raw
         except HTTPError as e:
             raise ProviderError(f"공시 공급자가 요청에 응답하지 못했습니다 (HTTP {e.code}). 잠시 후 다시 시도해주세요.") from None
         except (URLError,TimeoutError):

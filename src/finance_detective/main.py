@@ -2,6 +2,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
+from finance_detective.rag import service as rag_service, store as rag_store
 from finance_detective.chat import answer
 from finance_detective.retrieval.evidence import INDEX, PRESETS, search
 from typing import Literal
@@ -51,6 +52,19 @@ def company_data(company_id: str):
             "period_basis": data["period_basis"], "filing": data["filing"],
             "source_url": data["source_url"], "fetched_at": data["fetched_at"],
             "warnings": data["warnings"], "selection_policy": data["selection_policy"]}
+
+
+@app.get("/api/rag/status/{document_id}")
+def rag_status(document_id: str):
+    document = rag_store.get_document(document_id)
+    if not document:
+        raise HTTPException(status_code=404, detail="준비 중인 공시를 찾지 못했습니다.")
+    return rag_service.public_status(document)
+
+
+@app.post("/api/rag/prepare/{company_id}")
+def prepare_rag(company_id: str):
+    return rag_service.prepare(load_financials(company_id))
 
 
 @app.get("/api/companies/{ticker}")

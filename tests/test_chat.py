@@ -15,9 +15,10 @@ def offline_coupang(monkeypatch):
     data.update(company_id="SEC:CPNG", currency="USD", scope="consolidated", period_basis="회계연도 종료일", warnings=[], source_url=FILING_URL, filing={"accession":ACCESSION,"form":"10-K"})
     for row in data["records"]: row["period_label"]=row["end"]
     monkeypatch.setattr(chat,"load_financials",lambda cid:data)
-    # A synthetic retrieval response tests routing, not real corpus relevance.
-    monkeypatch.setattr(chat,"search",lambda *args:{"results":[{"id":"synthetic", "page":58,
-        "text":"Synthetic retrieval fixture", "source_url":FILING_URL}]})
+    # Synthetic RAG result isolates chat routing from provider/model calls.
+    monkeypatch.setattr(chat,"rag_answer",lambda question,data,rows:{"mode":"rag","status":"answered",
+        "text":"근거를 인용한 합성 응답", "steps":["인용문 대조"],
+        "evidence":[{"id":"synthetic", "ordinal":58,"text":"Synthetic retrieval fixture", "source_url":FILING_URL}]})
 
 
 
@@ -43,11 +44,12 @@ def test_blank_and_oversized_input():
         assert client.post("/api/chat",json={"message":text}).status_code==422
 
 
-def test_evidence_is_not_claimed_as_generated_answer():
+def test_explanation_is_routed_to_rag():
     body=client.post("/api/chat",json={"message":"쿠팡 현금흐름 감소 근거 찾아줘"}).json()
-    assert body["status"]=="evidence"
-    assert body["evidence"][0]["page"]==58
-    assert "확정한 답변은 아닙니다" in body["text"]
+    assert body["status"]=="answered"
+    assert body["mode"]=="rag"
+    assert body["evidence"][0]["ordinal"]==58
+    assert body["steps"] == ["인용문 대조"]
 
 
 def test_missing_dataset_returns_actionable_error(tmp_path,monkeypatch):

@@ -1,0 +1,144 @@
+{
+  "created_at": "2026-09-16T07:56:44.885242+00:00",
+  "prompt_version": "narrative-review-v4",
+  "evaluation": "development acceptance; no semantic correctness score",
+  "passed": 8,
+  "total": 8,
+  "limitations": "개발 중 사용한 8개 사례의 기대 상태와 원문 인용 검사. 독립 검증 집합, 의미 정확성 점수, 환각률 추정이 아님.",
+  "cases": [
+    {
+      "id": "samsung-business",
+      "company_id": "DART:005930",
+      "expected_status": "answered",
+      "actual_status": "answered",
+      "passed": true,
+      "exact_quote_check": true,
+      "latency_ms": 7157,
+      "trace": {
+        "run_id": "40320a835742486f8917724a7eec5d46",
+        "model": "gpt-4.1-mini-2025-04-14",
+        "prompt_version": "narrative-review-v4",
+        "retrieval_method": "hybrid_rrf",
+        "review_model": "gpt-4.1-2025-04-14",
+        "input_tokens": 10782,
+        "output_tokens": 468,
+        "latency_ms": 7119
+      }
+    },
+    {
+      "id": "samsung-generic-business",
+      "company_id": "DART:005930",
+      "expected_status": "answered",
+      "actual_status": "answered",
+      "passed": true,
+      "exact_quote_check": true,
+      "latency_ms": 5587,
+      "trace": {
+        "run_id": "36551f35829b4777a591462acf2281a2",
+        "model": "gpt-4.1-mini-2025-04-14",
+        "prompt_version": "narrative-review-v4",
+        "retrieval_method": "hybrid_rrf",
+        "review_model": "gpt-4.1-2025-04-14",
+        "input_tokens": 10147,
+        "output_tokens": 522,
+        "latency_ms": 5569
+      }
+    },
+    {
+      "id": "apple-risk",
+      "company_id": "SEC:AAPL",
+      "expected_status": "answered",
+      "actual_status": "answered",
+      "passed": true,
+      "exact_quote_check": true,
+      "latency_ms": 4329,
+      "trace": {
+        "run_id": "80da541db01545e5aba016e9c56927f8",
+        "model": "gpt-4.1-mini-2025-04-14",
+        "prompt_version": "narrative-review-v4",
+        "retrieval_method": "hybrid_rrf",
+        "review_model": "gpt-4.1-2025-04-14",
+        "input_tokens": 3824,
+        "output_tokens": 331,
+        "latency_ms": 4316
+      }
+    },
+    {
+      "id": "coupang-business",
+      "company_id": "SEC:CPNG",
+      "expected_status": "answered",
+      "actual_status": "answered",
+      "passed": true,
+      "exact_quote_check": true,
+      "latency_ms": 4782,
+      "trace": {
+        "run_id": "f354c35759644ea88d45628fe612adef",
+        "model": "gpt-4.1-mini-2025-04-14",
+        "prompt_version": "narrative-review-v4",
+        "retrieval_method": "hybrid_rrf",
+        "review_model": "gpt-4.1-2025-04-14",
+        "input_tokens": 4627,
+        "output_tokens": 402,
+        "latency_ms": 4769
+      }
+    },
+    {
+      "id": "missing-menu",
+      "company_id": "DART:005930",
+      "expected_status": "insufficient_evidence",
+      "actual_status": "insufficient_evidence",
+      "passed": true,
+      "exact_quote_check": true,
+      "latency_ms": 1663,
+      "trace": {
+        "run_id": "bde3fb82333540af83f718f83a8e00fb",
+        "model": "gpt-4.1-mini-2025-04-14",
+        "prompt_version": "narrative-review-v4",
+        "retrieval_method": "hybrid_rrf",
+        "review_model": null,
+        "input_tokens": 6344,
+        "output_tokens": 55,
+        "latency_ms": 1647
+      }
+    },
+    {
+      "id": "missing-moon",
+      "company_id": "SEC:AAPL",
+      "expected_status": "insufficient_evidence",
+      "actual_status": "insufficient_evidence",
+      "passed": true,
+      "exact_quote_check": true,
+      "latency_ms": 1637,
+      "trace": {
+        "run_id": "60988074bf48403bab9fde5deca7f198",
+        "model": "gpt-4.1-mini-2025-04-14",
+        "prompt_version": "narrative-review-v4",
+        "retrieval_method": "hybrid_rrf",
+        "review_model": null,
+        "input_tokens": 3202,
+        "output_tokens": 59,
+        "latency_ms": 1617
+      }
+    },
+    {
+      "id": "wrong-company",
+      "company_id": "DART:005930",
+      "expected_status": "unsupported",
+      "actual_status": "unsupported",
+      "passed": true,
+      "exact_quote_check": true,
+      "latency_ms": 6,
+      "trace": null
+    },
+    {
+      "id": "future-period",
+      "company_id": "DART:005930",
+      "expected_status": "unsupported",
+      "actual_status": "unsupported",
+      "passed": true,
+      "exact_quote_check": true,
+      "latency_ms": 9,
+      "trace": null
+    }
+  ]
+}
