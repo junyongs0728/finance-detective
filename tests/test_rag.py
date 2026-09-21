@@ -129,3 +129,14 @@ def test_pgvector_matches_python_exact_cosine_order(database):
     expected=sorted([(c['id'],search.cosine(query,v)) for c,v in zip(chunks,vectors)],key=lambda item:-item[1])
     assert [r[0] for r in found]==[r[0] for r in expected]
     assert [r[1] for r in found]==pytest.approx([r[1] for r in expected],abs=1e-6)
+
+
+def test_unreviewed_limitations_cannot_add_facts_to_answer(database,monkeypatch):
+    data=filing();did=indexed(data,'Revenue increased because of services.')
+    evidence=[{'id':'a','section':'Sales','text':'Revenue increased because of services.','source_url':data['source_url']}]
+    candidate=valid_answer();candidate['limitations']='공시 전체에 사업별 재무 수치가 없습니다.'
+    monkeypatch.setattr(llm,'generate',lambda *args:(candidate,{'input_tokens':10,'output_tokens':5,'model':'fixture'}))
+    monkeypatch.setattr(llm,'review',lambda *args:({'supported':True,'issues':[]},{'input_tokens':5,'output_tokens':2}))
+    answer=service._answer_ready('설명',data,[],store.get_document(did),evidence=evidence,retrieval={'method':'fixture'})
+    assert answer['status']=='answered' and candidate['limitations'] not in answer['text']
+    assert '검색된 문단' in answer['text']

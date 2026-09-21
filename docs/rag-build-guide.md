@@ -1,4 +1,4 @@
-> 저장소 변경 안내: 2026-09-16부터 PostgreSQL + pgvector 및 비용 제어를 사용합니다. 아래 SQLite 설명은 첫 구현의 학습 기록입니다. 현재 구조는 [PostgreSQL 전환과 AI 비용 제어](postgres-cost-guide.md)를 먼저 읽으세요.
+> 현재 버전 안내: v0.3은 PostgreSQL/pgvector, LangChain/LangGraph Agent, Neo4j를 사용합니다. 아래 SQLite·고정 워크플로 설명은 첫 구현의 학습 기록입니다. 현재 구조는 [전체 아키텍처](architecture.md), [Agent·Graph 가이드](agent-graph-guide.md)를 먼저 읽으세요.
 
 # 첫 RAG 구현: 공시를 찾아 근거와 함께 답하기
 

@@ -208,8 +208,8 @@ def test_zero_budget_http_keeps_numeric_lookup_available(database,fake_api,monke
     from finance_detective import chat
     from pathlib import Path
     data=json.loads((Path(__file__).parent/'fixtures/cpng-annual.json').read_text())
-    data.update(company_id='SEC:CPNG',currency='USD',scope='consolidated',period_basis='annual',warnings=[],
-                source_url='https://www.sec.gov/Archives/edgar/data/1/report.htm',filing={'form':'10-K','accession':'fixture','end':'2025-12-31'})
+    data.update(company_id='SEC:CPNG',provider='SEC',currency='USD',scope='consolidated',period_basis='annual',warnings=[],
+                source_url=data['records'][0]['source_url'],filing={'form':'10-K','accession':data['records'][0]['accession'],'end':'2025-12-31'})
     for row in data['records']:row['period_label']=row['end']
     monkeypatch.setattr(chat,'load_financials',lambda cid:data)
     did=store.queue_document(data,llm.embedding_model())

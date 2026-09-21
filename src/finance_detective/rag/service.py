@@ -74,7 +74,7 @@ def cache_key(question,data,financial_rows,doc):
             'question':' '.join(question.split()),'financial_rows':financial_rows,
             'currency':data.get('currency'),'scope':data.get('scope'),'period_basis':data.get('period_basis'),
             'model':llm.model(),'review_model':llm.review_model(),'prompt':llm.PROMPT_VERSION,
-            'retrieval':search.RETRIEVAL_VERSION,'cache_version':1}
+            'retrieval':search.RETRIEVAL_VERSION,'cache_version':2}
     return hashlib.sha256(json.dumps(values,ensure_ascii=False,sort_keys=True).encode()).hexdigest()
 
 
@@ -110,9 +110,11 @@ def answer(question,data,financial_rows):
             return result
 
 
-def _answer_ready(question,data,financial_rows,doc):
+def _answer_ready(question,data,financial_rows,doc,*,evidence=None,retrieval=None):
     started=time.perf_counter();doc_id=doc['id'];run_id=uuid.uuid4().hex
-    evidence,retrieval=search.retrieve(doc_id,question)
+    if evidence is None:
+        evidence,retrieval=search.retrieve(doc_id,question)
+    retrieval=dict(retrieval or {})
     if not evidence:
         return {'mode':'rag','status':'insufficient_evidence','text':'관련 공시 근거를 찾지 못했습니다.','steps':['근거 검색'],'evidence':[]}
     usage={'input_tokens':0,'output_tokens':0,'model':llm.model()}
@@ -144,8 +146,10 @@ def _answer_ready(question,data,financial_rows,doc):
     text='\n\n'.join(claim['text']+' '+''.join(f'[{label}]' for label in dict.fromkeys(labels[c['evidence_id']] for c in claim['citations'])) for claim in verified['claims'])
     if not text:
         text='검색된 공시 문단만으로는 질문을 충분히 뒷받침할 수 없어 답변을 보류했습니다. 이는 공시 전체에 해당 정보가 없다는 뜻은 아닙니다.'
-    elif verified['limitations']:
-        text+='\n\n'+verified['limitations']
+    else:
+        # The reviewer checks claims, not the free-form limitations field. Do not
+        # let that unreviewed field add facts or assert absence from the whole filing.
+        text+='\n\n선택한 공시의 검색된 문단을 바탕으로 한 요약이며, 공시 전체 내용을 모두 포함하지 않을 수 있습니다.'
     cited=[]
     for cid in cited_ids:
         chunk=evidence_by_id[cid]

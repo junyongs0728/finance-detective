@@ -11,13 +11,13 @@ class Citation(BaseModel):
 
 class Claim(BaseModel):
     model_config=ConfigDict(extra='forbid')
-    text:str=Field(min_length=1,max_length=1200)
+    text:str=Field(min_length=1,max_length=600)
     citations:list[Citation]=Field(min_length=1,max_length=3)
 
 class GroundedAnswer(BaseModel):
     model_config=ConfigDict(extra='forbid')
     status:Literal['answered','insufficient_evidence']
-    claims:list[Claim]=Field(max_length=4)
+    claims:list[Claim]=Field(max_length=3)
     limitations:str=Field(max_length=1600)
 
 

@@ -45,7 +45,7 @@ def test_selected_company_api_and_chat_never_use_coupang_evidence(monkeypatch):
     assert response["company"]["id"] == "DART:005930"
     assert response["currency"] == "KRW"
     assert response["rows"][-1]["revenue_growth_pct"] == 20
-    result=client.post("/api/chat", json={"company_id":"DART:005930", "message":"영업현금흐름 감소 근거"}).json()
+    result=client.post("/api/chat", json={"company_id":"DART:005930", "message":"영업현금흐름 감소 근거", "engine":"rag"}).json()
     assert result["status"] == "preparing" and result["evidence"] == []
     assert calls == ["DART:005930", "DART:005930"]
     mismatch=client.post("/api/chat", json={"company_id":"DART:005930", "message":"애플 매출"}).json()

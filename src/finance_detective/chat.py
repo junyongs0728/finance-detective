@@ -1,11 +1,12 @@
-"""Deterministic numeric routing plus a bounded, cited RAG workflow."""
+"""Scope guards and routing to free numeric lookup, RAG, or a bounded tool Agent."""
 import re
 from finance_detective.providers.registry import get_company, mentioned_companies
 from finance_detective.providers.service import load_financials, summary
 from finance_detective.rag.service import answer as rag_answer
+from finance_detective.agents.workflow import answer as agent_answer
 
 
-def answer(message: str, company_id: str = "SEC:CPNG"):
+def answer(message: str, company_id: str = "SEC:CPNG", engine: str = "auto"):
     company = get_company(company_id)
     question = message.strip()
     base = {"mode": "rule_based", "company_id": company["id"], "company_name": company["name"],
@@ -21,7 +22,8 @@ def answer(message: str, company_id: str = "SEC:CPNG"):
         return unavailable("현재는 선택한 기업의 연간 실적 조회를 지원합니다. 연도를 명시하거나 ‘연간 실적’을 요청해주세요. 분기·전망·투자 판단은 아직 지원하지 않습니다.")
     why = bool(re.search(r"왜|이유|원인|근거|주석|공시|설명|요약|정리|사업|제품|위험|리스크|경쟁|전략|어떻게|무엇|어떤|why|reason|evidence|business|risk|explain", question, re.I))
     topic = "cash_flow" if re.search(r"현금|cash", question, re.I) else "margin" if re.search(r"이익|마진|margin|income", question, re.I) else "revenue"
-    if not why and not re.search(r"현금|매출|수익|영업|이익|마진|실적|재무|cash|revenue|sales|income|margin", question, re.I):
+    analytical=bool(re.search(r'차이|차액|경로|관계|출처\s*추적|difference|trace|provenance',question,re.I))
+    if not why and not analytical and not re.search(r"현금|매출|수익|영업|이익|마진|실적|재무|cash|revenue|sales|income|margin", question, re.I):
         return unavailable("매출·영업이익·영업현금흐름·매출 증가율·영업이익률을 조회할 수 있습니다. ‘연간 실적 알려줘’로 시작해보세요. 각 질문은 독립적으로 처리합니다.")
     data = load_financials(company["id"])
     rows = summary(data)
@@ -35,8 +37,8 @@ def answer(message: str, company_id: str = "SEC:CPNG"):
                 scope=data["scope"], period_basis=data["period_basis"], warnings=data["warnings"],
                 fetched_at=data["fetched_at"],
                 sources=[{"label": data["company"] + " · " + data["filing"]["form"], "url": data["source_url"]}])
-    if why:
-        generated = rag_answer(question, data, rows)
+    if why or analytical or engine=='agent':
+        generated = (rag_answer if engine=='rag' else agent_answer)(question, data, rows)
         # Keep the structured numeric table only when the question actually asks about financial metrics.
         if not re.search(r"현금|매출|수익|영업|이익|마진|실적|재무|cash|revenue|income|margin",question,re.I):
             base["rows"] = []

@@ -1,7 +1,9 @@
 # 재무탐정 · Finance Detective
 
-미국·한국 기업을 검색하고, 공시 출처가 있는 연간 재무정보를 조회하는 학습용 웹 앱입니다.
-React 화면과 Python/FastAPI를 사용하며, 근거를 인용하는 재무 분석 AI로 확장하고 있습니다.
+미국·한국 기업의 공시를 검색하고, 재무 수치 계산과 출처 확인을 연결하는 AI 분석 웹 앱입니다.
+React·FastAPI·LangChain·LangGraph·PostgreSQL/pgvector·Neo4j로 구현한 포트폴리오 MVP입니다.
+
+**[전체 구조·기술 스택](docs/architecture.md)** · **[Agent·Graph 코드 설명](docs/agent-graph-guide.md)** · **[3분 시연 가이드](docs/demo-guide.md)**
 
 ## 현재 구현
 
@@ -9,14 +11,18 @@ React 화면과 Python/FastAPI를 사용하며, 근거를 인용하는 재무 �
 - OpenDART / SEC 표준 XBRL 기반 연간 매출·영업이익·영업현금흐름
 - Python으로 계산한 매출 증가율·영업이익률
 - 공시별 통화·기간 기준·원문 링크와 누락 데이터 표시
-- 수치 질문은 규칙 기반 조회, 설명 질문은 선택 기업·공시에 한정한 RAG
+- 단순 수치 질문은 무료 조회, 복합 질문은 도구 선택 Agent, 별도 고정 RAG 모드
 - PostgreSQL 문서·문단·실행 기록 + pgvector 벡터 검색
 - pgvector 정확 검색 + BM25 검색, 출처 인용, 별도 근거 검토와 답변 유보
 - 모델별 토큰·비용 기록, 호출 전 예산 예약, 개인/전체 한도, 검증된 답변 캐시
 - 로컬 개발자 계정 / 배포용 이용 코드, React 사용량·캐시 비용 표시
+- LangChain 도구 4개: 재무 조회·검증된 계산·공시 검색·근거 관계 탐색
+- LangGraph 모델 선택 → 도구 실행 → 결과 관찰 루프와 횟수·시간·입력 제한
+- 기업·공시·기간·관측값·지표·근거의 온톨로지, Neo4j Property Graph
+- SQL 기준 스냅샷과 Neo4j 조회 결과 대조, 계산 카드·도구 기록·관계 탐색 UI
 - 선택적으로 준비하는 쿠팡 2025 10-K의 BM25 본문 검색
 
-**현재는 고정된 RAG 워크플로이며 자율 Agent는 아닙니다.** OpenAI 생성·임베딩·PostgreSQL 저장은 구현했고, 온톨로지·Property Graph·도구 선택 Agent는 다음 단계입니다. [RAG 구현 가이드](docs/rag-build-guide.md)에서 실제 코드 흐름과 한계를 설명합니다.
+Agent가 허용된 도구의 실행 순서를 실제로 선택합니다. 숫자는 Python이 계산하고 인용은 서버가 원문에서 복사합니다. [전체 구조](docs/architecture.md)에서 구현 범위와 운영 단계의 남은 과제를 설명합니다. 범용 투자 자문이나 모든 공시를 완전하게 분석하는 서비스는 아닙니다.
 
 ## 로컬 실행
 
@@ -42,9 +48,13 @@ npm run build --prefix frontend
 | `SEC_USER_AGENT` | `"FinanceDetective 실제연락이메일"` 형태의 SEC 요청 식별 정보 |
 | `OPENAI_API_KEY` | 설명 질문의 문서 임베딩·답변 생성·근거 검토용. 수치 조회만 할 때는 필요 없음 |
 | `OPENAI_MODEL` | 기본값 `gpt-4.1-mini` |
+| `OPENAI_AGENT_MODEL` | 도구 선택 모델, 기본값 `gpt-4.1-mini` |
 | `OPENAI_REVIEW_MODEL` | 근거 검토 기본값 `gpt-4.1` |
 | `OPENAI_EMBEDDING_MODEL` | 기본값 `text-embedding-3-small`, 512차원 |
 | `DATABASE_URL` / `POSTGRES_PASSWORD` | 설정 스크립트가 생성, DB는 localhost:55432 |
+| `NEO4J_URI` / `NEO4J_USERNAME` / `NEO4J_PASSWORD` | 설정 스크립트가 준비, Bolt localhost:7687, 관리 화면 localhost:7474 |
+| `AGENT_MAX_STEPS` / `AGENT_MAX_TOOL_CALLS` | 모델 선택 기본 6회 / 도구 실행 기본 8회 |
+| `AGENT_TIMEOUT_SECONDS` | 도구 루프 기본 120초. 마지막 생성·검토 시간은 별도 |
 | `AI_AUTH_MODE` | 로컬 `local`, 외부 배포는 `token` 필수 |
 | `AI_DAILY_BUDGET_USD` / `AI_MONTHLY_BUDGET_USD` | 전체 기본 $5/일, $30/월 |
 | `AI_USER_DAILY_BUDGET_USD` / `AI_USER_DAILY_REQUESTS` | 사용자 기본 $1/일, 분석 50회/일 |
@@ -64,15 +74,18 @@ npm run build --prefix frontend
 1. 기업명 또는 종목코드로 검색합니다.
 2. 기업을 선택하면 연간 재무표와 출처를 조회합니다.
 3. `연간 매출과 영업이익 알려줘` 또는 `2025년 영업이익률 알려줘`처럼 질문합니다.
-4. `주요 사업을 공시 근거로 설명해줘`로 AI 답변을 요청합니다. 처음에는 해당 공시를 준비하며 진행 상태를 표시합니다. 공시 서술문과 질문이 OpenAI API로 전송되고 API 비용이 발생합니다.
-5. 기업을 바꾸면 이전 대화가 초기화됩니다. 각 질문은 독립적으로 처리합니다.
+4. `2025년 영업현금흐름과 영업이익 차이를 계산하고 근거 경로를 보여줘`로 계산·도구 기록·관계를 확인합니다.
+5. `주요 사업을 공시 근거로 설명해줘`로 AI 답변을 요청합니다. 처음에는 해당 공시를 준비하며 진행 상태를 표시합니다. 공시 서술문과 질문이 OpenAI API로 전송되고 API 비용이 발생합니다.
+6. 기업을 바꾸면 이전 대화가 초기화됩니다. 각 질문은 독립적으로 처리합니다. ‘자동’은 단순 조회와 Agent를 구분하고, ‘AI 심층 분석’은 Agent, ‘공시 검색 답변’은 설명 질문의 고정 RAG 경로입니다.
 
 | API | 역할 |
 |---|---|
 | `GET /api/companies?q=삼성전자&market=DART` | 기업 검색 |
 | `GET /api/company-data/DART:005930` | 한국 기업 연간 수치 |
 | `GET /api/company-data/SEC:AAPL` | 미국 기업 연간 수치 |
-| `POST /api/chat` | `company_id`, `message`를 명시한 질문 |
+| `POST /api/chat` | `company_id`, `message`, `engine: auto/rag/agent` |
+| `GET /api/agent/runs/{run_id}` | 본인 분석의 도구 실행·결과 기록 |
+| `GET /api/graph/{snapshot_id}` | 본인 분석에 연결된 실제 Neo4j 관계 조회 |
 
 ## 데이터 범위와 한계
 
@@ -105,8 +118,10 @@ SEC 수치와 [쿠팡 공식 IR PDF](https://s206.q4cdn.com/919117365/files/doc_
 npm run build --prefix frontend
 ```
 
-테스트는 고정 공개 수치와 합성 모델 응답을 사용하며 실제 PostgreSQL이 필요합니다 (`docker compose up -d --wait`). 테스트마다 임시 스키마를 만들고 삭제하며 운영 데이터는 건드리지 않습니다. 외부 API 인증키·호출·다운로드된 PDF는 필요하지 않습니다.
+테스트는 고정 공개 수치와 합성 모델 응답을 사용하며 실제 PostgreSQL·Neo4j가 필요합니다 (`docker compose up -d --wait`). 테스트마다 임시 SQL 스키마·Graph namespace를 만들고 삭제하며 운영 데이터는 건드리지 않습니다. 외부 API 인증키·호출·다운로드된 PDF는 필요하지 않습니다.
 실제 RAG 개발 평가: 삼성전자·애플·쿠팡에 먼저 설명 질문을 한 뒤 `.venv/bin/python scripts/evaluate_rag.py`. 이 평가는 유료 API를 호출하며 결과를 `data/processed/rag-evaluation.json`에 저장합니다. 실제 공급자 연결 및 브라우저 확인과 오프라인 단위 검사를 구분합니다.
+
+Agent 개발 평가: 서버 실행 후 `.venv/bin/python scripts/evaluate_agent.py --live`. **유료 API 호출**을 포함하며, 고정 8개 질문의 도구 선택·계산·인용 문자열·Graph 일치·범위 차단을 확인합니다. [관측 결과](evals/agent-report.json)와 [실패 개선 기록](docs/agent-graph-guide.md)을 참고하세요. 이 결과를 일반 정확도나 환각률로 표현하지 않습니다.
 
 ## 코드 구조
 
@@ -121,19 +136,20 @@ src/finance_detective/
   rag/                       PostgreSQL·pgvector·비용 예약·캐시·검색·생성·검증
   auth.py                    로컬/이용 코드 사용자 식별
   collectors/                최초 쿠팡 수집 기준선
-  agents/                    미구현 확장 자리
+  agents/                    LangChain 도구·모델 연결, LangGraph 실행 제어
+  knowledge/                 온톨로지, SQL 스냅샷, Neo4j 투영·검증·조회
 scripts/                     선택적 데이터 준비
 data/seed/                   공개 검색 목록
-tests/                       네트워크 없는 검증
+tests/                       외부 API 없는 검증, 로컬 PostgreSQL·Neo4j 사용
 docs/                        구현 설명·설계·학습 기록
 ```
 
 ## 다음 단계와 학습 기록
 
-1. 구현된 RAG의 검색 품질·문서 지원 범위와 평가 데이터 확장
-2. 재무 조회·계산·검색 도구를 연결하는 Agent Architecture
-3. 온톨로지 설계와 Property Graph 관계 탐색
-4. 근거·수치 정확성, 답변 유보, 비용·지연 평가와 Git 변경 기록
+1. 검색 정답 데이터·사람 검토를 늘려 공시 형식과 질문 범위 확대
+2. 복합·다기간 질문의 도구 선택 평가와 재무 항목 매핑 확대
+3. 작업 큐·복구·Graph 속성 이력·DB 마이그레이션 운영 개선
+4. 외부 시연 배포, 접근 제어, 부하·백업·모니터링 검증
 
 - [PostgreSQL 전환과 AI 비용 제어](docs/postgres-cost-guide.md)
 - [기업 검색 구현과 AI 학습 계획](docs/company-search-guide.md)
@@ -141,7 +157,7 @@ docs/                        구현 설명·설계·학습 기록
 - [React 채팅 구현 설명](docs/react-chat-guide.md)
 - [재무 개념 참고 노트](docs/finance-reference.md)
 
-일부 문서는 초기 단계의 실험 기록입니다. 현재 기능 범위는 이 README와 기업 검색 구현 가이드를 기준으로 확인하세요.
+일부 문서는 초기 단계의 실험 기록입니다. 현재 기능 범위는 이 README와 [전체 구조](docs/architecture.md)를 기준으로 확인하세요.
 
 ## 비용 확인과 외부 배포 준비
 

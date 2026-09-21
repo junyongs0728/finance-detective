@@ -1,0 +1,247 @@
+{
+  "created_at": "2026-09-21T02:08:59.408695+00:00",
+  "evaluation": "development acceptance; not independent semantic accuracy or hallucination rate",
+  "limitations": "고정 개발 사례의 상태·도구·계산·인용 문자열·SQL/Graph 일치 검사. 답변의 의미 정확성과 원인 설명의 충분성은 별도 사람 검토가 필요합니다.",
+  "passed": 8,
+  "total": 8,
+  "cases": [
+    {
+      "id": "cash-income-gap",
+      "company_id": "SEC:CPNG",
+      "question": "2025년 영업현금흐름에서 영업이익을 뺀 차이를 계산하고 두 수치의 원본 근거 경로를 보여줘",
+      "status": "answered",
+      "checks": {
+        "status": true,
+        "tool_selection": true,
+        "graph_projection": true,
+        "numeric_result": true
+      },
+      "passed": true,
+      "tool_sequence": [
+        "get_financials",
+        "calculate_metrics",
+        "trace_evidence"
+      ],
+      "agent_trace": {
+        "run_id": "7d1b382b683c466f81c5efa0c85c3e02",
+        "model": "gpt-4.1-mini",
+        "prompt_version": "financial-tool-agent-v1",
+        "turns": 4,
+        "tool_calls": 3,
+        "stop_reason": "",
+        "latency_ms": 6516
+      },
+      "evidence_count": 0,
+      "estimated_usd": 0.002415,
+      "cached": false,
+      "elapsed_ms": 6674,
+      "rag_trace": null
+    },
+    {
+      "id": "operating-margin",
+      "company_id": "SEC:CPNG",
+      "question": "2025년 영업이익을 매출로 나눈 영업이익률을 계산하고 원본 항목을 추적해줘",
+      "status": "answered",
+      "checks": {
+        "status": true,
+        "tool_selection": true,
+        "graph_projection": true,
+        "numeric_result": true
+      },
+      "passed": true,
+      "tool_sequence": [
+        "get_financials",
+        "calculate_metrics",
+        "trace_evidence"
+      ],
+      "agent_trace": {
+        "run_id": "de9b8a8aad214d2d80c9c3e76c6647a8",
+        "model": "gpt-4.1-mini",
+        "prompt_version": "financial-tool-agent-v1",
+        "turns": 4,
+        "tool_calls": 3,
+        "stop_reason": "",
+        "latency_ms": 6527
+      },
+      "evidence_count": 0,
+      "estimated_usd": 0.002898,
+      "cached": false,
+      "elapsed_ms": 6646,
+      "rag_trace": null
+    },
+    {
+      "id": "samsung-semiconductor",
+      "company_id": "DART:005930",
+      "question": "삼성전자의 반도체 사업을 공시 문단에 근거해 요약해줘",
+      "status": "answered",
+      "checks": {
+        "status": true,
+        "tool_selection": true,
+        "graph_projection": true,
+        "exact_quotes": true
+      },
+      "passed": true,
+      "tool_sequence": [
+        "search_filings"
+      ],
+      "agent_trace": {
+        "run_id": "e59f2cf0d659433fb42dee64d1b80cc8",
+        "model": "gpt-4.1-mini",
+        "prompt_version": "financial-tool-agent-v1",
+        "turns": 2,
+        "tool_calls": 1,
+        "stop_reason": "",
+        "latency_ms": 9396
+      },
+      "evidence_count": 1,
+      "estimated_usd": 0.01706,
+      "cached": false,
+      "elapsed_ms": 9497,
+      "rag_trace": {
+        "model": "gpt-4.1-mini-2025-04-14",
+        "run_id": "ad42923b9c0f4abcadcada092a9c062d",
+        "latency_ms": 4843,
+        "input_tokens": 11875,
+        "review_model": "gpt-4.1-2025-04-14",
+        "output_tokens": 390,
+        "prompt_version": "narrative-review-v6",
+        "retrieval_method": "agent_hybrid_rrf"
+      }
+    },
+    {
+      "id": "apple-supply-risk",
+      "company_id": "SEC:AAPL",
+      "question": "애플이 공시한 공급망 리스크를 설명해줘",
+      "status": "answered",
+      "checks": {
+        "status": true,
+        "tool_selection": true,
+        "graph_projection": true,
+        "exact_quotes": true
+      },
+      "passed": true,
+      "tool_sequence": [
+        "search_filings"
+      ],
+      "agent_trace": {
+        "run_id": "8929689886784d519fde7c2177a16c7b",
+        "model": "gpt-4.1-mini",
+        "prompt_version": "financial-tool-agent-v1",
+        "turns": 2,
+        "tool_calls": 1,
+        "stop_reason": "",
+        "latency_ms": 8949
+      },
+      "evidence_count": 2,
+      "estimated_usd": 0.007057,
+      "cached": false,
+      "elapsed_ms": 9024,
+      "rag_trace": {
+        "model": "gpt-4.1-mini-2025-04-14",
+        "run_id": "f735d960bf9d45c19e3dae2b9b5ebb7d",
+        "latency_ms": 4408,
+        "input_tokens": 4241,
+        "review_model": "gpt-4.1-2025-04-14",
+        "output_tokens": 373,
+        "prompt_version": "narrative-review-v6",
+        "retrieval_method": "agent_hybrid_rrf"
+      }
+    },
+    {
+      "id": "unavailable-business",
+      "company_id": "SEC:CPNG",
+      "question": "쿠팡의 2025년 달 기지 운영 사업을 공시 근거로 설명해줘",
+      "status": "insufficient_evidence",
+      "checks": {
+        "status": true,
+        "tool_selection": true
+      },
+      "passed": true,
+      "tool_sequence": [
+        "search_filings"
+      ],
+      "agent_trace": {
+        "run_id": "dcb2b596e28b4cfeaf1e62b00a643f72",
+        "model": "gpt-4.1-mini",
+        "prompt_version": "financial-tool-agent-v1",
+        "turns": 2,
+        "tool_calls": 1,
+        "stop_reason": "",
+        "latency_ms": 5019
+      },
+      "evidence_count": 0,
+      "estimated_usd": 0.002716,
+      "cached": false,
+      "elapsed_ms": 5083,
+      "rag_trace": {
+        "model": "gpt-4.1-mini-2025-04-14",
+        "run_id": "8572374b83924a10aa84fe47c9688b5a",
+        "latency_ms": 1137,
+        "input_tokens": 2555,
+        "review_model": null,
+        "output_tokens": 66,
+        "prompt_version": "narrative-review-v6",
+        "retrieval_method": "agent_hybrid_rrf"
+      }
+    },
+    {
+      "id": "different-company",
+      "company_id": "SEC:CPNG",
+      "question": "삼성전자 2025년 매출을 설명해줘",
+      "status": "unsupported",
+      "checks": {
+        "status": true,
+        "no_paid_calls": true
+      },
+      "passed": true,
+      "tool_sequence": [],
+      "agent_trace": null,
+      "evidence_count": 0,
+      "estimated_usd": 0,
+      "cached": false,
+      "elapsed_ms": 5
+    },
+    {
+      "id": "future-period",
+      "company_id": "SEC:CPNG",
+      "question": "2030년 영업이익을 계산해줘",
+      "status": "unsupported",
+      "checks": {
+        "status": true,
+        "no_paid_calls": true
+      },
+      "passed": true,
+      "tool_sequence": [],
+      "agent_trace": null,
+      "evidence_count": 0,
+      "estimated_usd": 0,
+      "cached": false,
+      "elapsed_ms": 5
+    },
+    {
+      "id": "investment-forecast",
+      "company_id": "SEC:CPNG",
+      "question": "쿠팡 목표가와 매수 시점을 예측해줘",
+      "status": "unsupported",
+      "checks": {
+        "status": true,
+        "no_paid_calls": true
+      },
+      "passed": true,
+      "tool_sequence": [],
+      "agent_trace": null,
+      "evidence_count": 0,
+      "estimated_usd": 0,
+      "cached": false,
+      "elapsed_ms": 5
+    }
+  ],
+  "estimated_usd": "0.032146",
+  "environment": "Local FastAPI + PostgreSQL 17/pgvector 0.8.2 + Neo4j 2026.08.1; pre-indexed filings; sequential HTTP calls",
+  "caveats": [
+    "Development cases were used to guide fixes; not a held-out accuracy benchmark.",
+    "Quoted strings are checked mechanically; no independent human semantic scoring.",
+    "Latency excludes first-time document indexing. Costs exclude previous experiments, indexing, hosting and taxes."
+  ],
+  "post_evaluation_fix": "Unreviewed model limitations text replaced with fixed server scope notice; covered by regression test. Evaluated claims and tool behavior unchanged."
+}

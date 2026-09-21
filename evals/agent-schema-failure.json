@@ -1,0 +1,28 @@
+{
+  "created_at": "2026-09-21T02:07:08.317109+00:00",
+  "evaluation": "development acceptance; not independent semantic accuracy or hallucination rate",
+  "limitations": "고정 개발 사례의 상태·도구·계산·인용 문자열·SQL/Graph 일치 검사. 답변의 의미 정확성과 원인 설명의 충분성은 별도 사람 검토가 필요합니다.",
+  "passed": 0,
+  "total": 1,
+  "cases": [
+    {
+      "id": "samsung-semiconductor",
+      "passed": false,
+      "error_type": "HTTPStatusError",
+      "status": null,
+      "checks": {},
+      "elapsed_ms": 11633,
+      "error_code": "citation_validation_failed",
+      "estimated_usd": 0.006661,
+      "audit_run_id": "349ec3e27d514b33b85b8eb0c6cc83d0",
+      "cost_source": "PostgreSQL audit recovery after HTTP error"
+    }
+  ],
+  "estimated_usd": "0.006661",
+  "environment": "Local FastAPI + PostgreSQL 17/pgvector 0.8.2 + Neo4j 2026.08.1; pre-indexed filings; sequential HTTP calls",
+  "caveats": [
+    "Development cases were used to guide fixes; not a held-out accuracy benchmark.",
+    "Quoted strings are checked mechanically; no independent human semantic scoring.",
+    "Latency excludes first-time document indexing. Costs exclude previous experiments, indexing, hosting and taxes."
+  ]
+}

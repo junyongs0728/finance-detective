@@ -53,3 +53,20 @@ CREATE TABLE IF NOT EXISTS answer_cache (
 );
 CREATE INDEX IF NOT EXISTS answer_cache_expiry ON answer_cache(expires_at);
 INSERT INTO schema_migrations(version) VALUES(1) ON CONFLICT DO NOTHING;
+
+-- PostgreSQL is the source of truth; Neo4j is a rebuildable relationship projection.
+CREATE TABLE IF NOT EXISTS knowledge_snapshots (
+ id text PRIMARY KEY, company_id text NOT NULL, accession text NOT NULL,
+ ontology_version text NOT NULL, payload jsonb NOT NULL,
+ created_at timestamptz NOT NULL DEFAULT now(), projected_at timestamptz
+);
+CREATE INDEX IF NOT EXISTS knowledge_company ON knowledge_snapshots(company_id,created_at);
+CREATE TABLE IF NOT EXISTS agent_runs (
+ id text PRIMARY KEY, user_id text NOT NULL REFERENCES ai_users(id),
+ request_id text NOT NULL REFERENCES ai_requests(id),
+ document_id text NOT NULL REFERENCES documents(id), snapshot_id text REFERENCES knowledge_snapshots(id),
+ question text NOT NULL, model text NOT NULL, prompt_version text NOT NULL,
+ status text NOT NULL, trace jsonb NOT NULL, response jsonb NOT NULL,
+ latency_ms integer NOT NULL, created_at timestamptz NOT NULL DEFAULT now()
+);
+INSERT INTO schema_migrations(version) VALUES(2) ON CONFLICT DO NOTHING;

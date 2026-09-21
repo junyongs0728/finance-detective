@@ -5,6 +5,8 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from finance_detective.rag import service as rag_service, store as rag_store
 from finance_detective.rag import billing
+from finance_detective.agents import workflow as agent_workflow
+from finance_detective.knowledge import graph as knowledge_graph
 from finance_detective import auth
 from finance_detective.chat import answer
 from finance_detective.retrieval.evidence import INDEX, PRESETS, search
@@ -26,9 +28,10 @@ async def lifespan(app):
     rag_store.initialize()
     yield
     rag_service.POOL.shutdown(wait=True)
+    knowledge_graph.close()
     rag_store.close()
 
-app = FastAPI(title="재무탐정", version="0.2.0", lifespan=lifespan,
+app = FastAPI(title="재무탐정", version="0.3.0", lifespan=lifespan,
               description="미국 SEC · 한국 OpenDART 기업 검색과 연간 재무정보 조회")
 
 COMPANY = {
@@ -198,6 +201,7 @@ def home():
 class ChatRequest(BaseModel):
     message: str = Field(min_length=1, max_length=2000)
     company_id: str = Field(default="SEC:CPNG", min_length=1, max_length=40)
+    engine: Literal['auto','rag','agent'] = 'auto'
 
 
 @app.post("/api/chat")
@@ -206,9 +210,24 @@ def chat(payload: ChatRequest,request: Request):
         raise HTTPException(status_code=422, detail="질문을 입력해주세요.")
     try:
         with billing.as_user(auth.resolve(request)):
-            return answer(payload.message, payload.company_id)
+            return answer(payload.message, payload.company_id, payload.engine)
     except FileNotFoundError:
         raise HTTPException(status_code=503, detail="분석 자료가 준비되지 않았습니다. 수집과 색인을 먼저 실행해주세요.")
+
+
+@app.get('/api/agent/runs/{run_id}')
+def agent_run(run_id: str,request: Request):
+    return agent_workflow.get_run(run_id,auth.resolve(request,required=True))
+
+
+@app.get('/api/graph/{snapshot_id}')
+def evidence_graph(snapshot_id: str,request: Request):
+    # Only users with an analysis containing this snapshot can retrieve its projection.
+    user=auth.resolve(request,required=True)
+    with rag_store.connection() as db:
+        allowed=db.execute('SELECT 1 FROM agent_runs WHERE snapshot_id=%s AND user_id=%s LIMIT 1',(snapshot_id,user)).fetchone()
+    if not allowed:raise ProviderError('이 사용자의 근거 관계를 찾지 못했습니다.','not_found')
+    return knowledge_graph.read(snapshot_id)
 
 
 FRONTEND = Path(__file__).resolve().parents[2] / "frontend/dist"

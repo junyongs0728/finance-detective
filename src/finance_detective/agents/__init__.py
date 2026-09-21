@@ -1,1 +1,1 @@
-"""Add orchestration after the deterministic baseline works."""
+"""LangChain tools and bounded LangGraph orchestration for financial evidence."""
