@@ -159,6 +159,8 @@ def test_missing_requested_calculation_is_not_reported_complete(data,document,gr
 
 
 def test_langchain_calls_are_billed_and_missing_usage_keeps_reservation(database,monkeypatch):
+    # The fake client must not depend on a developer's .env or a real credential.
+    monkeypatch.setenv('OPENAI_API_KEY','test-only-no-network')
     calls=[]
     class FakeModel:
         def __init__(self,**kwargs):
