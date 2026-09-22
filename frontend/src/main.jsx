@@ -198,6 +198,7 @@ function App() {
       <button className="new-chat" onClick={reset}><Plus size={17}/>새 대화<span>↗</span></button>
       <p className="nav-label">WORKSPACE</p>
       <div className="nav-active"><Search size={17}/>공시 탐색<span className="live-dot"/></div>
+      <a className="portfolio-link" href="/portfolio/" target="_blank" rel="noreferrer"><BookOpen size={16}/>프로젝트 소개<ArrowUpRight size={14}/></a>
       <div className="source-panel"><p className="nav-label">현재 분석 기업</p><div className="company-logo">{selected.provider === 'DART' ? 'KR' : 'US'}</div><strong>{overview?.name || selected.name}</strong><span className="ticker">{selected.provider} · {selected.ticker}</span><button className="change-company" onClick={() => setPicker(true)}><Search size={14}/>기업 변경</button><div className="source-meta"><span>보고서</span><b>{overview?.filing.form || '조회 중'}</b><span>기준 기간</span><b>{overview?.filing.end || '—'}</b><span>통화</span><b>{overview?.currency || '—'}</b></div>{overview && <a href={overview.source_url} target="_blank" rel="noreferrer">공시 원문 보기 <ArrowUpRight size={14}/></a>}</div>
       <div className="sidebar-bottom"><span className="avatar">J</span><div>나의 리서치 공간<small>로컬 프로젝트 · v0.3</small></div></div>
     </aside>

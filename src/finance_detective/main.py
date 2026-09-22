@@ -231,6 +231,10 @@ def evidence_graph(snapshot_id: str,request: Request):
 
 
 FRONTEND = Path(__file__).resolve().parents[2] / "frontend/dist"
+SHOWCASE = Path(__file__).resolve().parents[2] / "showcase"
+if SHOWCASE.exists():
+    app.mount("/portfolio", StaticFiles(directory=SHOWCASE, html=True), name="portfolio")
+
 if (FRONTEND / "assets").exists():
     app.mount("/assets", StaticFiles(directory=FRONTEND / "assets"), name="assets")
 

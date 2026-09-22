@@ -5,6 +5,10 @@ React·FastAPI·LangChain·LangGraph·PostgreSQL/pgvector·Neo4j로 구현한 �
 
 **[전체 구조·기술 스택](docs/architecture.md)** · **[Agent·Graph 코드 설명](docs/agent-graph-guide.md)** · **[3분 시연 가이드](docs/demo-guide.md)**
 
+**[프로젝트 소개 화면](showcase/index.html)** · **[제출용 소개 PDF](showcase/project-brief.pdf)** · **[지원·면접 근거 정리](docs/application-evidence.md)**
+
+로컬 앱의 `/portfolio/`에서 실제 실행 사례 3개와 설계·실패 개선·평가 범위를 확인할 수 있습니다. `showcase/`는 API·DB 없이 별도로 열 수 있는 정적 소개 자료입니다. 실제 AI 호출이나 임의 질문 입력은 제공하지 않습니다. 소스 저장소는 비공개이며, 외부 공개 URL은 아직 없습니다.
+
 ## 현재 구현
 
 - 기업명·종목코드 검색, 한국/미국 필터, 일부 미국 기업의 한국어 별칭
@@ -64,6 +68,7 @@ npm run build --prefix frontend
 기존 SQLite 사용자는 서버를 멈춘 상태에서 `.venv/bin/python scripts/migrate_sqlite.py`를 한 번 실행하세요. 원본을 보존하며 문단·임베딩·실행 기록을 검증해서 이전합니다. 재실행 가능하고 임베딩 API를 호출하지 않습니다. 새 설치는 서버 시작 시 빈 PostgreSQL 스키마를 준비합니다.
 
 - 앱: http://127.0.0.1:8000/
+- 프로젝트 소개: http://127.0.0.1:8000/portfolio/
 - API 문서: http://127.0.0.1:8000/docs
 - 개발 중에는 `npm run dev --prefix frontend`로 Vite를 실행할 수 있습니다. `/api` 요청은 8000 포트로 전달됩니다.
 
@@ -112,6 +117,8 @@ SEC 수치와 [쿠팡 공식 IR PDF](https://s206.q4cdn.com/919117365/files/doc_
 `evals/`의 기존 결과는 작은 개발 집합에 대한 실험 기록이며 일반 성능을 뜻하지 않습니다. 이전 쿠팡 전용 `/legacy`, `/api/companies/CPNG/...`는 호환용입니다.
 
 ## 검증
+
+GitHub Actions는 `main` push·PR에서 고정 의존성 설치, PostgreSQL·Neo4j 통합 검사, React 빌드를 실행합니다. CI는 임시 DB와 합성 모델 응답을 사용하며 유료 API 키를 사용하지 않습니다.
 
 ```sh
 .venv/bin/python -m pytest -q
