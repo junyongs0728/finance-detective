@@ -5,9 +5,9 @@ React·FastAPI·LangChain·LangGraph·PostgreSQL/pgvector·Neo4j로 구현한 �
 
 **[전체 구조·기술 스택](docs/architecture.md)** · **[Agent·Graph 코드 설명](docs/agent-graph-guide.md)** · **[3분 시연 가이드](docs/demo-guide.md)**
 
-**[프로젝트 소개 화면](showcase/index.html)** · **[제출용 소개 PDF](showcase/project-brief.pdf)** · **[지원·면접 근거 정리](docs/application-evidence.md)**
+**[재무탐정 실행 예시](https://finance-detective.junyongs0728.chatgpt.site)** · **[제출용 소개 PDF](showcase/project-brief.pdf)** · **[지원·면접 근거 정리](docs/application-evidence.md)**
 
-로컬 앱의 `/portfolio/`에서 실제 실행 사례 3개와 설계·실패 개선·평가 범위를 확인할 수 있습니다. `showcase/`는 API·DB 없이 별도로 열 수 있는 정적 소개 자료입니다. 실제 AI 호출이나 임의 질문 입력은 제공하지 않습니다. 소스 저장소는 비공개이며, 외부 공개 URL은 아직 없습니다.
+공개 웹사이트에서 기업과 질문을 선택해 실제 실행 사례 3개와 공시 근거를 확인할 수 있습니다. 계산·공시 설명·근거 부족 처리를 먼저 보여주고, 기술 설명과 평가 기록은 프로젝트 소개 메뉴로 연결했습니다. `showcase/`는 API·DB 없이 동작하는 정적 화면이며 로컬 앱의 `/portfolio/`에서도 볼 수 있습니다. 저장된 결과를 표시하며 실시간 AI 호출이나 임의 질문 입력은 제공하지 않습니다. 전체 앱은 아래 방법으로 로컬에서 실행할 수 있습니다.
 
 ## 현재 구현
 
