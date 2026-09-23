@@ -18,7 +18,7 @@ def main():
     for case in cases:
         started=time.perf_counter()
         try:
-            result=answer(case['question'],case['company_id'])
+            result=answer(case['question'],case['company_id'],engine='rag')
             if result['status']=='preparing':
                 raise RuntimeError('Prepare the selected filings first via the app.')
             correct=result['status']==case['expected_status'] and all(t in result['text'] for t in case['must_contain'])

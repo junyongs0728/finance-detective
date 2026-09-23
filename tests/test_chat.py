@@ -65,3 +65,31 @@ def test_missing_dataset_returns_actionable_error(tmp_path,monkeypatch):
     def missing(cid): raise FileNotFoundError()
     monkeypatch.setattr(chat,"load_financials",missing)
     assert client.post("/api/chat",json={"message":"쿠팡 매출"}).status_code==503
+
+
+def test_rag_evaluator_does_not_follow_default_agent_route(tmp_path, monkeypatch):
+    import runpy
+
+    def unexpected_agent(*args):
+        pytest.fail("The fixed RAG evaluation must not run the default Agent path")
+
+    monkeypatch.setattr(chat, "agent_answer", unexpected_agent)
+    monkeypatch.setattr(chat, "rag_answer", lambda question, data, rows: {
+        "mode": "rag", "status": "answered", "text": "근거를 인용한 합성 응답",
+        "evidence": [{"id": "synthetic", "text": "Synthetic evidence", "quotes": ["Synthetic evidence"]}],
+    })
+    cases = [{"id": "fixed-rag-route", "company_id": "SEC:CPNG",
+              "question": "쿠팡의 주요 사업을 공시 근거로 설명해줘",
+              "expected_status": "answered", "must_contain": ["합성 응답"]}]
+    (tmp_path / "evals").mkdir()
+    (tmp_path / "evals/rag-dev.json").write_text(json.dumps({"cases": cases}))
+    (tmp_path / "data/processed").mkdir(parents=True)
+
+    script = Path(__file__).resolve().parents[1] / "scripts/evaluate_rag.py"
+    evaluator = runpy.run_path(str(script))["main"]
+    monkeypatch.setitem(evaluator.__globals__, "ROOT", tmp_path)
+    evaluator()
+
+    report = json.loads((tmp_path / "data/processed/rag-evaluation.json").read_text())
+    assert report["passed"] == report["total"] == 1
+    assert report["cases"][0]["exact_quote_check"] is True
