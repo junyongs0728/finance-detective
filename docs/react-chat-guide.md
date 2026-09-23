@@ -1,25 +1,25 @@
-# React 채팅 연결 — 2026-09-16
+# React 채팅과 API 연결
 
-> 후속 구현: OpenAI RAG·임베딩·SQLite·근거 검토가 추가되었습니다. 현재 상태는 [RAG 구현 가이드](rag-build-guide.md)를 참고하세요. 아래는 해당 단계의 기록입니다.
+## 요청 흐름
 
+`frontend/src/main.jsx`의 `App.send()` → `POST /api/chat` → FastAPI 입력·사용자 확인 → `chat.answer()` → 수치 / 고정 RAG / Agent → `Result`와 `AnalysisDetails` 표시.
 
-## 실행 흐름
-frontend/src/main.jsx App.send → POST /api/chat → ChatRequest 입력 길이 검증 → chat.answer → summarize/search → JSON → Result 컴포넌트.
+기업 검색, 입력·전송, 한국어 IME 조합 중 Enter 방지, 준비 진행 상태, 요청 중지, 오류 재시도, 수치 표, 원문 인용을 지원한다. Agent 응답에는 계산 카드·도구 실행 기록·근거 관계 탐색을 표시한다.
 
-## 실제 구현
-추천 질문, 입력·전송, IME 조합 중 Enter 전송 방지, 대기 상태, AbortController/30초 timeout, 오류 재시도, 새 대화, 실제 데이터 표, 출처, 접을 수 있는 공시 발췌. 모바일에서는 좁은 표만 가로 스크롤합니다.
+## 데이터 계약과 화면 책임
 
-## 왜 이 구조인가
-화면에 수치·계산 공식을 중복 구현하지 않고 기존 Python 도구를 재사용합니다. JSON 응답은 text/rows/evidence/sources/status/steps를 구분하므로 나중에 LLM text를 추가해도 숫자 표와 출처 UI는 재사용 가능합니다. Vite proxy와 배포 시 같은 origin을 사용해 불필요한 광범위 CORS 설정을 피했습니다.
+- `company_id`와 `engine: auto/rag/agent`를 서버에 명시한다. 계산과 통화·기간 검증은 Python에서 수행한다.
+- `text`, `rows`, `evidence`, `sources`, `calculations`, `agent_steps`, `knowledge_graph`, `status`를 구분해 표시한다.
+- 공시가 `preparing`이면 문서 상태를 확인한 후 질문을 다시 요청한다. 즉시 답변과 준비 중 상태를 구분한다.
+- 사용량·답변 캐시 여부는 서버 응답을 표시하며 프런트가 API 키나 예산을 관리하지 않는다.
+- Vite 개발 프록시와 FastAPI의 정적 파일 제공으로 API를 같은 origin에 연결한다.
 
-## Skeleton과 제한
-프런트는 실제 동작하며 mock 답변은 없습니다. 다만 chat.py의 keyword routing은 LLM intent router를 대신하는 임시 adapter입니다. Agent/LLM/멀티턴 메모리는 구현되지 않았습니다. 수치 요약 문장은 템플릿입니다. 근거 질문은 원인 분석 결과가 아니라 영어 발췌를 반환합니다.
+## 상태 경쟁과 제한
 
-## 시니어 리뷰
-1. 범위 인식: 몇 개 기업명 blacklist와 regex는 일반 자연어 scope 검증이 아님. 알 수 없는 회사·복합 질문을 정확히 분리하는 resolver와 평가 필요.
-2. 상태 경쟁: 새 대화 후 이전 응답이 끼지 않도록 generation ID로 응답을 무시하고 abort합니다. 브라우저 abort가 서버 연산 취소까지 보장하는 것은 아닙니다.
-3. UI 보안: 원문과 질문을 React text로 렌더링하고 raw HTML 삽입을 하지 않습니다.
-4. 서버는 비용 발생 모델을 호출하지 않습니다. LLM 연결 때 rate limit, trace, token/cost budget을 추가해야 합니다.
-5. 현재 대화는 새로고침하면 없어지고 각 질문은 독립적입니다. 저장·메모리 기능을 암묵적으로 주장하지 않습니다.
-6. 응답 schema는 아직 Python dict/JavaScript이며 후속 단계에서 Pydantic response model·TypeScript 타입으로 계약을 강화할 수 있습니다.
-7. 한국어 키워드 의도 분류는 질문 뜻을 이해하는 AI가 아닙니다. UI에 ‘데이터 조회 모드’로 표시합니다.
+새 대화나 기업 변경 시 `AbortController`와 실행 번호로 이전 응답이 새 화면에 섞이지 않게 한다. 브라우저의 요청 중지는 진행 중인 서버·모델 호출 취소나 비용 환불을 보장하지 않는다.
+
+원문과 질문은 React 텍스트로 렌더링한다. 현재 대화는 브라우저 메모리에 있으며 새로고침하면 초기화된다. 대화 이력을 모델에 전달하지 않으므로 후속 질문에도 기업·기간·대상을 명시해야 한다.
+
+응답 계약은 Python dict와 JavaScript로 연결되어 있다. TypeScript 타입 및 더 넓은 응답 모델 검증, 자동화된 브라우저 회귀 검사는 후속 과제다.
+
+`showcase/`는 저장된 실행 결과를 표시하는 별도 정적 예시다. 실시간 API 채팅 앱과 동작 범위를 구분한다. 사용 예시는 [demo-guide.md](demo-guide.md)를 참고한다.

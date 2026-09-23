@@ -1,1 +1,1 @@
-"""Deterministic financial calculations: learner-owned core."""
+"""Deterministic financial calculations with explicit period and currency checks."""
